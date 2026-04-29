@@ -479,9 +479,9 @@ void EditorView::onTextChanged()
         m_isUnsaved = true;
         updateStatusBar();
     }
-    
-    // Auto-calculate: check if current word ends with =
+
     autoCalcResult();
+    autoConvertMath();
 }
 
 void EditorView::autoCalcResult()
@@ -530,6 +530,43 @@ void EditorView::autoCalcResult()
             m_isCalculating = false;
         }
     }
+}
+
+void EditorView::autoConvertMath()
+{
+    if (m_isCalculating) return;
+
+    QTextCursor cursor = m_textEdit->textCursor();
+    int cursorPos = cursor.position();
+    if (cursorPos < 2) return;
+
+    QString text = m_textEdit->toPlainText();
+
+    // Trigger only when the user has just typed a whitespace boundary
+    // (space / tab / newline). This keeps prose untouched unless a known
+    // math token is followed by whitespace.
+    QChar prevChar = text[cursorPos - 1];
+    if (!prevChar.isSpace()) return;
+
+    int wordEnd = cursorPos - 1;
+    int wordStart = wordEnd;
+    while (wordStart > 0 && !text[wordStart - 1].isSpace()) {
+        wordStart--;
+    }
+    if (wordStart == wordEnd) return;
+
+    QString word = text.mid(wordStart, wordEnd - wordStart);
+    int charsToDelete = 0;
+    QString converted = MathConverter::convert(word, charsToDelete);
+    if (converted.isEmpty() || charsToDelete <= 0)
+        return;
+
+    m_isCalculating = true;
+    QTextCursor edit(m_textEdit->document());
+    edit.setPosition(wordStart);
+    edit.setPosition(wordEnd, QTextCursor::KeepAnchor);
+    edit.insertText(converted);
+    m_isCalculating = false;
 }
 
 void EditorView::onCursorPositionChanged()

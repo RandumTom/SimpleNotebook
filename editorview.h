@@ -62,6 +62,7 @@ private slots:
     
     // Inline calculator
     void autoCalcResult();
+    void autoConvertMath();
 
 private:
     void refreshFileList();
