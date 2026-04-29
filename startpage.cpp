@@ -188,13 +188,14 @@ void StartPage::onSubjectClicked()
         return;
     }
     
-    // Initialize git repo if not already
     QDir gitDir(documentsPath);
     if (!gitDir.exists(".git")) {
-        QProcess gitInit;
-        gitInit.setWorkingDirectory(documentsPath);
-        gitInit.start("git", {"init"});
-        gitInit.waitForFinished();
+        QProcess *gitInit = new QProcess(this);
+        gitInit->setWorkingDirectory(documentsPath);
+        connect(gitInit, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                gitInit, &QObject::deleteLater);
+        connect(gitInit, &QProcess::errorOccurred, gitInit, &QObject::deleteLater);
+        gitInit->start("git", {"init"});
     }
 
     m_folderLabel->setText("📂 " + documentsPath);
@@ -211,15 +212,16 @@ void StartPage::onSelectFolder()
     );
 
     if (!folderPath.isEmpty()) {
-        // Initialize git repo if not already
         QDir gitDir(folderPath);
         if (!gitDir.exists(".git")) {
-            QProcess gitInit;
-            gitInit.setWorkingDirectory(folderPath);
-            gitInit.start("git", {"init"});
-            gitInit.waitForFinished();
+            QProcess *gitInit = new QProcess(this);
+            gitInit->setWorkingDirectory(folderPath);
+            connect(gitInit, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                    gitInit, &QObject::deleteLater);
+            connect(gitInit, &QProcess::errorOccurred, gitInit, &QObject::deleteLater);
+            gitInit->start("git", {"init"});
         }
-        
+
         m_folderLabel->setText("📂 " + folderPath);
         emit folderSelected(folderPath);
     }

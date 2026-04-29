@@ -326,41 +326,43 @@ void GitPanel::refreshStatus()
         m_stageAllBtn->setEnabled(false);
         return;
     }
-    
+
     m_noChangesLabel->setText("✓ No changes to commit");
     m_noChangesLabel->setStyleSheet("color: #10B981; padding: 16px; text-align: center;");
-    
-    QProcess proc;
-    proc.setWorkingDirectory(m_repoPath);
-    proc.start("git", {"status", "--porcelain"});
-    proc.waitForFinished();
-    
-    QString output = QString::fromLocal8Bit(proc.readAllStandardOutput());
-    QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-    
-    m_changesList->clear();
-    
-    if (lines.isEmpty()) {
-        m_noChangesLabel->setVisible(true);
-        m_changesList->setVisible(false);
-        m_stageAllBtn->setEnabled(false);
-    } else {
+
+    QProcess *proc = new QProcess(this);
+    proc->setWorkingDirectory(m_repoPath);
+    connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, proc](int, QProcess::ExitStatus) {
+        QString output = QString::fromUtf8(proc->readAllStandardOutput());
+        proc->deleteLater();
+
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        m_changesList->clear();
+
+        if (lines.isEmpty()) {
+            m_noChangesLabel->setVisible(true);
+            m_changesList->setVisible(false);
+            m_stageAllBtn->setEnabled(false);
+            return;
+        }
+
         m_noChangesLabel->setVisible(false);
         m_changesList->setVisible(true);
         m_stageAllBtn->setEnabled(true);
-        
+
         for (const QString &line : lines) {
             if (line.length() < 3) continue;
-            
+
             QString status = line.left(2);
             QString file = line.mid(3);
             QString icon;
             QString color;
-            
+
             if (status == "M " || status == "MM") {
                 icon = "📝";
                 color = "#F59E0B";
-            } else if (status == "A " || status == "AM" || status == "MM") {
+            } else if (status == "A " || status == "AM") {
                 icon = "➕";
                 color = "#10B981";
             } else if (status == "D " || status == " D") {
@@ -376,17 +378,18 @@ void GitPanel::refreshStatus()
                 icon = "📄";
                 color = "#D4D4D4";
             }
-            
+
             QListWidgetItem *item = new QListWidgetItem(QString("%1  %2").arg(icon).arg(file));
             item->setForeground(QColor(color));
             m_changesList->addItem(item);
         }
-    }
+    });
+    connect(proc, &QProcess::errorOccurred, proc, &QObject::deleteLater);
+    proc->start("git", {"status", "--porcelain"});
 }
 
 void GitPanel::refreshBranches()
 {
-    // Check if this is a git repo
     QDir repoDir(m_repoPath);
     if (!repoDir.exists(".git")) {
         m_branchIndicator->setText("No repo");
@@ -394,34 +397,39 @@ void GitPanel::refreshBranches()
         m_pathLabel->setText(QFileInfo(m_repoPath).fileName() + " / ---");
         return;
     }
-    
+
     m_branchIndicator->setStyleSheet("color: #10B981; font-size: 12px; padding: 4px 8px; background-color: #1A1A1A; border-radius: 4px;");
-    
-    QProcess proc;
-    proc.setWorkingDirectory(m_repoPath);
-    
-    // Get current branch
-    proc.start("git", {"rev-parse", "--abbrev-ref", "HEAD"});
-    proc.waitForFinished();
-    QString currentBranch = QString::fromLocal8Bit(proc.readAllStandardOutput()).trimmed();
-    
-    // Get upstream
-    proc.start("git", {"rev-parse", "--abbrev-ref", "@{upstream}"});
-    proc.waitForFinished();
-    QString upstream = QString::fromLocal8Bit(proc.readAllStandardOutput()).trimmed();
-    
-    if (currentBranch.isEmpty()) currentBranch = "(detached)";
-    if (upstream.isEmpty()) upstream = currentBranch;
-    
-    m_branchIndicator->setText(QString("%1 → %2").arg(currentBranch).arg(upstream));
-    m_pathLabel->setText(QString("%1 / %2").arg(QFileInfo(m_repoPath).fileName()).arg(currentBranch));
+
+    QProcess *headProc = new QProcess(this);
+    headProc->setWorkingDirectory(m_repoPath);
+    connect(headProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, headProc](int, QProcess::ExitStatus) {
+        QString currentBranch = QString::fromUtf8(headProc->readAllStandardOutput()).trimmed();
+        headProc->deleteLater();
+        if (currentBranch.isEmpty()) currentBranch = "(detached)";
+
+        QProcess *upProc = new QProcess(this);
+        upProc->setWorkingDirectory(m_repoPath);
+        connect(upProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                this, [this, upProc, currentBranch](int, QProcess::ExitStatus) {
+            QString upstream = QString::fromUtf8(upProc->readAllStandardOutput()).trimmed();
+            upProc->deleteLater();
+            if (upstream.isEmpty()) upstream = currentBranch;
+
+            m_branchIndicator->setText(QString("%1 → %2").arg(currentBranch).arg(upstream));
+            m_pathLabel->setText(QString("%1 / %2").arg(QFileInfo(m_repoPath).fileName()).arg(currentBranch));
+        });
+        connect(upProc, &QProcess::errorOccurred, upProc, &QObject::deleteLater);
+        upProc->start("git", {"rev-parse", "--abbrev-ref", "@{upstream}"});
+    });
+    connect(headProc, &QProcess::errorOccurred, headProc, &QObject::deleteLater);
+    headProc->start("git", {"rev-parse", "--abbrev-ref", "HEAD"});
 }
 
 void GitPanel::refreshRecentCommits()
 {
     m_recentCommits->clear();
-    
-    // Check if this is a git repo
+
     QDir repoDir(m_repoPath);
     if (!repoDir.exists(".git")) {
         QListWidgetItem *item = new QListWidgetItem("  Not a Git repository");
@@ -429,34 +437,38 @@ void GitPanel::refreshRecentCommits()
         m_recentCommits->addItem(item);
         return;
     }
-    
-    QProcess proc;
-    proc.setWorkingDirectory(m_repoPath);
-    proc.start("git", {"log", "--oneline", "-10", "--decorate"});
-    proc.waitForFinished();
-    
-    QString output = QString::fromLocal8Bit(proc.readAllStandardOutput());
-    
-    if (output.trimmed().isEmpty()) {
-        QListWidgetItem *item = new QListWidgetItem("  No commits yet");
-        item->setForeground(QColor("#808080"));
-        m_recentCommits->addItem(item);
-        return;
-    }
-    
-    for (const QString &line : output.split('\n', Qt::SkipEmptyParts)) {
-        QString commit = line.trimmed();
-        if (commit.isEmpty()) continue;
-        
-        QListWidgetItem *item = new QListWidgetItem("  " + commit);
-        item->setForeground(QColor("#D4D4D4"));
-        
-        if (commit.contains("(HEAD")) {
-            item->setForeground(QColor("#7C3AED"));
+
+    QProcess *proc = new QProcess(this);
+    proc->setWorkingDirectory(m_repoPath);
+    connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, proc](int, QProcess::ExitStatus) {
+        QString output = QString::fromUtf8(proc->readAllStandardOutput());
+        proc->deleteLater();
+
+        m_recentCommits->clear();
+        if (output.trimmed().isEmpty()) {
+            QListWidgetItem *item = new QListWidgetItem("  No commits yet");
+            item->setForeground(QColor("#808080"));
+            m_recentCommits->addItem(item);
+            return;
         }
-        
-        m_recentCommits->addItem(item);
-    }
+
+        for (const QString &line : output.split('\n', Qt::SkipEmptyParts)) {
+            QString commit = line.trimmed();
+            if (commit.isEmpty()) continue;
+
+            QListWidgetItem *item = new QListWidgetItem("  " + commit);
+            item->setForeground(QColor("#D4D4D4"));
+
+            if (commit.contains("(HEAD")) {
+                item->setForeground(QColor("#7C3AED"));
+            }
+
+            m_recentCommits->addItem(item);
+        }
+    });
+    connect(proc, &QProcess::errorOccurred, proc, &QObject::deleteLater);
+    proc->start("git", {"log", "--oneline", "-10", "--decorate"});
 }
 
 void GitPanel::onFetch()

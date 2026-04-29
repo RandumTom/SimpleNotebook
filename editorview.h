@@ -74,11 +74,14 @@ private:
     void highlightCurrentLine();
     void openSystemTerminal();
     void spawnAgent(const QString &agent);
+    void pasteCutItem();
 
     QString m_folderPath;
     QString m_currentFile;
     bool m_isUnsaved = false;
+    bool m_isCalculating = false;
     QString m_cutItem;
+    QString m_cutSourceFolder;
     QTimer *m_autoSaveTimer;
     int m_autoSaveInterval = 30000;
 

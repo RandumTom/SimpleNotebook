@@ -95,29 +95,11 @@ EditorView::EditorView(QWidget *parent)
         menu.addAction("Cut", this, [this, item]() {
             QClipboard *clipboard = QApplication::clipboard();
             clipboard->setText(item->text());
-            // Mark for deletion
             m_cutItem = item->text();
+            m_cutSourceFolder = m_folderPath;
         });
         menu.addAction("Paste", this, [this]() {
-            if (!m_cutItem.isEmpty()) {
-                // Create new file with copied name
-                QString newPath = m_folderPath + "/" + m_cutItem + ".md";
-                QString baseName = m_cutItem;
-                int counter = 1;
-                while (QFileInfo::exists(newPath)) {
-                    baseName = QString("%1 (%2)").arg(m_cutItem).arg(counter++);
-                    newPath = m_folderPath + "/" + baseName + ".md";
-                }
-                QFile file(newPath);
-                if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-                    file.close();
-                    refreshFileList();
-                    m_cutItem.clear();
-                }
-                file.close();
-                refreshFileList();
-                m_cutItem.clear();
-            }
+            pasteCutItem();
         });
         menu.addSeparator();
         menu.addAction("Rename", this, [this, item]() {
@@ -216,9 +198,9 @@ EditorView::EditorView(QWidget *parent)
     });
     exportBtn->setMenu(exportMenu);
 
-    QAction *terminalAct = new QAction("Terminal (Ctrl+Ö)", this);
+    QAction *terminalAct = new QAction("Terminal (Ctrl+J)", this);
     terminalAct->setCheckable(true);
-    terminalAct->setShortcut(Qt::CTRL | Qt::Key_O);
+    terminalAct->setShortcut(Qt::CTRL | Qt::Key_J);
 
     // AI Agents menu button
     QWidgetAction *agentsBtn = new QWidgetAction(m_toolbar);
@@ -353,7 +335,6 @@ EditorView::EditorView(QWidget *parent)
     connect(terminalAct, &QAction::toggled, [this](bool checked) {
         m_terminalDock->setVisible(checked);
     });
-    connect(agentsMenu->menuAction(), &QAction::triggered, this, &EditorView::openSystemTerminal);
     connect(m_textEdit, &QPlainTextEdit::textChanged, this, &EditorView::onTextChanged);
     connect(m_textEdit, &QPlainTextEdit::cursorPositionChanged, this, &EditorView::onCursorPositionChanged);
     connect(m_searchInput, &QLineEdit::textChanged, this, &EditorView::onSearchTextChanged);
@@ -380,8 +361,15 @@ void EditorView::setFolder(const QString &folderPath)
     m_currentFile.clear();
     m_isUnsaved = false;
     updateStatusBar();
-    
-    // Update Git panel with new folder path
+
+    // QTermWidget cannot retroactively change a running shell's PWD,
+    // so send a `cd` to the live shell. Escape single-quotes in the path.
+    if (m_terminal && !folderPath.isEmpty()) {
+        QString escaped = folderPath;
+        escaped.replace('\'', "'\\''");
+        m_terminal->sendText("cd '" + escaped + "'\n");
+    }
+
     if (m_gitPanel) {
         m_gitPanel->setRepoPath(folderPath);
     }
@@ -390,14 +378,25 @@ void EditorView::setFolder(const QString &folderPath)
 void EditorView::loadFile(const QString &filePath)
 {
     if (m_isUnsaved && !m_currentFile.isEmpty()) {
-        saveCurrentFile();
+        if (!saveCurrentFile()) {
+            QMessageBox::StandardButton reply = QMessageBox::warning(
+                this, "Save Failed",
+                "Could not save the current note. Discard unsaved changes and continue?",
+                QMessageBox::Discard | QMessageBox::Cancel);
+            if (reply != QMessageBox::Discard)
+                return;
+        }
     }
 
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "Open Failed",
+            "Could not open '" + QFileInfo(filePath).fileName() + "': " + file.errorString());
         return;
+    }
 
     QTextStream in(&file);
+    in.setEncoding(QStringConverter::Utf8);
     m_textEdit->setPlainText(in.readAll());
     file.close();
 
@@ -452,8 +451,11 @@ void EditorView::onAddClicked()
         }
 
         QFile file(filePath);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QMessageBox::warning(this, "Create Failed",
+                "Could not create note: " + file.errorString());
             return;
+        }
         file.close();
 
         m_textEdit->clear();
@@ -484,8 +486,7 @@ void EditorView::onTextChanged()
 
 void EditorView::autoCalcResult()
 {
-    static bool isCalculating = false;
-    if (isCalculating) return;
+    if (m_isCalculating) return;
     
     QTextCursor cursor = m_textEdit->textCursor();
     QString fullText = m_textEdit->toPlainText();
@@ -523,11 +524,10 @@ void EditorView::autoCalcResult()
         QString result = MathConverter::evaluate(expr + "=", charsToDelete);
         
         if (!result.isEmpty()) {
-            isCalculating = true;
-            // Insert result after the = (at current cursor position)
+            m_isCalculating = true;
             cursor.insertText(" " + result);
             m_textEdit->setTextCursor(cursor);
-            isCalculating = false;
+            m_isCalculating = false;
         }
     }
 }
@@ -596,18 +596,16 @@ void EditorView::highlightAllMatches(const QString &searchText)
         QTextDocument *doc = m_textEdit->document();
         QTextCursor cursor(doc);
         int matchCount = 0;
-        while (!cursor.isNull() && !cursor.atEnd()) {
+        while (true) {
             cursor = doc->find(searchText, cursor);
-            if (!cursor.isNull()) {
-                QTextEdit::ExtraSelection selection;
-                selection.format.setBackground(QColor("#4B4B00"));
-                selection.format.setForeground(QColor("#FFFFFF"));
-                selection.cursor = cursor;
-                selection.cursor.clearSelection();
-                highlights.append(selection);
-                matchCount++;
-                cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
-            }
+            if (cursor.isNull())
+                break;
+            QTextEdit::ExtraSelection selection;
+            selection.format.setBackground(QColor("#4B4B00"));
+            selection.format.setForeground(QColor("#FFFFFF"));
+            selection.cursor = cursor;
+            highlights.append(selection);
+            matchCount++;
         }
         m_searchLabel->setText(QString("%1 match%2").arg(matchCount).arg(matchCount == 1 ? "" : "es"));
     } else {
@@ -643,6 +641,7 @@ bool EditorView::saveCurrentFile()
         return false;
 
     QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
     out << m_textEdit->toPlainText();
     file.close();
 
@@ -715,8 +714,8 @@ void EditorView::keyPressEvent(QKeyEvent *event)
         return;
     }
     
-    // Ctrl+Ö (Ctrl+O) for terminal toggle - German keyboard
-    if (event->modifiers() & Qt::ControlModifier && (event->key() == Qt::Key_O || event->key() == Qt::Key_Odiaeresis)) {
+    // Ctrl+J for terminal toggle (portable across keyboard layouts)
+    if (event->modifiers() & Qt::ControlModifier && event->key() == Qt::Key_J) {
         bool visible = m_terminalDock->isVisible();
         m_terminalDock->setVisible(!visible);
         event->accept();
@@ -820,35 +819,72 @@ void EditorView::openSystemTerminal()
 
 void EditorView::spawnAgent(const QString &agent)
 {
-    QString command;
+    QString command = "ghostty";
     QStringList args;
-    
-    // Determine what to launch based on agent type
+
     if (agent == "pi") {
-        // Launch PI coding agent
-        command = "ghostty";
         args << "-e" << "pi";
     } else if (agent == "claude") {
-        // Launch Claude CLI
-        command = "ghostty";
         args << "-e" << "claude";
-    } else if (agent == "ghostty") {
-        // Just open ghostty in the current folder
-        command = "ghostty";
-        if (!m_folderPath.isEmpty()) {
-            args << "-e" << "bash" << "-c" << QString("cd '%1' && $SHELL").arg(m_folderPath);
-        }
-    } else {
-        // Generic: try to run the command directly in ghostty
-        command = "ghostty";
+    } else if (agent != "ghostty") {
         args << "-e" << agent;
     }
-    
+
     QProcess *process = new QProcess(this);
-    if (!m_folderPath.isEmpty() && args.isEmpty()) {
+    if (!m_folderPath.isEmpty()) {
         process->setWorkingDirectory(m_folderPath);
     }
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            process, &QObject::deleteLater);
+    connect(process, &QProcess::errorOccurred, process, &QObject::deleteLater);
     process->start(command, args);
+}
+
+void EditorView::pasteCutItem()
+{
+    if (m_cutItem.isEmpty())
+        return;
+
+    QString srcFolder = m_cutSourceFolder.isEmpty() ? m_folderPath : m_cutSourceFolder;
+    QString srcPath = srcFolder + "/" + m_cutItem + ".md";
+
+    if (!QFileInfo::exists(srcPath)) {
+        m_statusBar->showMessage("Cut source no longer exists", 3000);
+        m_cutItem.clear();
+        m_cutSourceFolder.clear();
+        return;
+    }
+
+    QString newPath = m_folderPath + "/" + m_cutItem + ".md";
+    QString baseName = m_cutItem;
+    int counter = 1;
+    while (QFileInfo::exists(newPath) && QFileInfo(newPath).absoluteFilePath() != QFileInfo(srcPath).absoluteFilePath()) {
+        baseName = QString("%1 (%2)").arg(m_cutItem).arg(counter++);
+        newPath = m_folderPath + "/" + baseName + ".md";
+    }
+
+    if (QFileInfo(srcPath).absoluteFilePath() == QFileInfo(newPath).absoluteFilePath()) {
+        m_cutItem.clear();
+        m_cutSourceFolder.clear();
+        return;
+    }
+
+    if (!QFile::copy(srcPath, newPath)) {
+        QMessageBox::warning(this, "Paste Failed", "Could not copy '" + m_cutItem + "' to the destination folder.");
+        return;
+    }
+
+    if (!QFile::remove(srcPath)) {
+        m_statusBar->showMessage("Pasted, but could not remove the original", 3000);
+    }
+
+    if (m_currentFile == srcPath) {
+        m_currentFile = newPath;
+    }
+
+    m_cutItem.clear();
+    m_cutSourceFolder.clear();
+    refreshFileList();
 }
 
 bool EditorView::eventFilter(QObject *obj, QEvent *event)
@@ -869,27 +905,11 @@ bool EditorView::eventFilter(QObject *obj, QEvent *event)
                 QClipboard *clipboard = QApplication::clipboard();
                 clipboard->setText(item->text());
                 m_cutItem = item->text();
+                m_cutSourceFolder = m_folderPath;
                 return true;
             }
             if (keyEvent->key() == Qt::Key_V) { // Paste
-                if (!m_cutItem.isEmpty()) {
-                    QString newPath = m_folderPath + "/" + m_cutItem + ".md";
-                    QString baseName = m_cutItem;
-                    int counter = 1;
-                    while (QFileInfo::exists(newPath)) {
-                        baseName = QString("%1 (%2)").arg(m_cutItem).arg(counter++);
-                        newPath = m_folderPath + "/" + baseName + ".md";
-                    }
-                    QFile file(newPath);
-                    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-                        file.close();
-                        refreshFileList();
-                        m_cutItem.clear();
-                    }
-                    file.close();
-                    refreshFileList();
-                    m_cutItem.clear();
-                }
+                pasteCutItem();
                 return true;
             }
         }
