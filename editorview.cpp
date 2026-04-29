@@ -1,5 +1,6 @@
 #include "editorview.h"
 #include "MathConverter.h"
+#include "gitwindow.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -121,6 +122,17 @@ EditorView::EditorView(QWidget *parent)
     agentsMenuBtn->setMenu(agentsMenu);
     agentsBtn->setDefaultWidget(agentsMenuBtn);
 
+    // Git button
+    QPushButton *gitBtn = new QPushButton("🔀 Git", m_toolbar);
+    gitBtn->setStyleSheet("QPushButton { background-color: transparent; color: #D4D4D4; border: none; padding: 8px 12px; border-radius: 4px; } QPushButton:hover { background-color: #3E3E42; }");
+    gitBtn->setCursor(Qt::PointingHandCursor);
+    connect(gitBtn, &QPushButton::clicked, this, [this]() {
+        if (!m_folderPath.isEmpty()) {
+            GitWindow *gitWin = new GitWindow(m_folderPath, this);
+            gitWin->show();
+        }
+    });
+
     m_toolbar->addAction(newAct);
     m_toolbar->addAction(saveAct);
     m_toolbar->addSeparator();
@@ -129,6 +141,7 @@ EditorView::EditorView(QWidget *parent)
     m_toolbar->addSeparator();
     m_toolbar->addAction(terminalAct);
     m_toolbar->addAction(agentsBtn);
+    m_toolbar->addWidget(gitBtn);
 
     editorLayout->addWidget(m_toolbar);
 

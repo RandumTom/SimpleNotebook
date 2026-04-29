@@ -28,6 +28,13 @@ MainWindow::MainWindow(QWidget *parent)
     
     // Start maximized
     showMaximized();
+    
+    // Force complete repaint
+    repaint();
+    
+    // Set window attributes for clean rendering
+    setAttribute(Qt::WA_PaintOnScreen, true);
+    setAttribute(Qt::WA_OpaquePaintEvent, true);
 }
 
 MainWindow::~MainWindow()

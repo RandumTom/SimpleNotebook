@@ -18,6 +18,8 @@ add_executable(${PROJECT_NAME}
     startpage.h
     editorview.cpp
     editorview.h
+    gitwindow.cpp
+    gitwindow.h
     MathConverter.cpp
     MathConverter.h
 )
