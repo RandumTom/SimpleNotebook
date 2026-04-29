@@ -3,12 +3,21 @@
 #include "editorview.h"
 #include <QStatusBar>
 #include <QMenuBar>
+#include <QLayout>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle("SimpleNotebook");
     setStyleSheet("QMainWindow { background-color: #1E1E1E; }");
+
+    // Hide bars BEFORE creating widgets
+    statusBar()->hide();
+    menuBar()->hide();
+    
+    // Remove all margins
+    setContentsMargins(0, 0, 0, 0);
+    setDockOptions(QMainWindow::DockOption::AnimatedDocks | QMainWindow::DockOption::AllowNestedDocks);
 
     // Create pages
     m_startPage = new StartPage(this);
@@ -17,11 +26,8 @@ MainWindow::MainWindow(QWidget *parent)
     // Start with start page
     setCentralWidget(m_startPage);
     
-    // Hide status bar (editor has its own)
-    statusBar()->hide();
-    
-    // Menu bar too if any
-    menuBar()->hide();
+    // Ensure no margins around central widget
+    centralWidget()->layout()->setContentsMargins(0, 0, 0, 0);
 
     // Connections
     connect(m_startPage, &StartPage::folderSelected, this, &MainWindow::onFolderSelected);
