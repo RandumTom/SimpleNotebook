@@ -33,7 +33,7 @@ StartPage::StartPage(QWidget *parent)
     welcomeLabel->setAlignment(Qt::AlignCenter);
 
     // Subtitle
-    QLabel *subtitleLabel = new QLabel("Your dark-themed school notes organizer", this);
+    QLabel *subtitleLabel = new QLabel("Notes saved to ~/SimpleNotebook/", this);
     subtitleLabel->setStyleSheet(
         "font-size: 14px; "
         "color: #808080; "
@@ -178,8 +178,8 @@ void StartPage::onSubjectClicked()
 
     QString subjectName = btn->property("subjectName").toString();
 
-    // Get the user's documents folder and create a SchoolNotes subfolder
-    QString documentsPath = QDir::homePath() + "/Documents/SchoolNotes/" + subjectName;
+    // Get the user's home folder and create a SimpleNotebook subfolder
+    QString documentsPath = QDir::homePath() + "/SimpleNotebook/" + subjectName;
 
     // Create the folder if it doesn't exist
     QDir dir;
