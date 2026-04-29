@@ -34,6 +34,67 @@ static QString superscriptDigit(const QString &num)
     return result;
 }
 
+static bool superscriptToInt(const QChar &c, int &n)
+{
+    static const QMap<QChar, int> map = {
+        {QChar(8304), 0},
+        {QChar(185), 1},
+        {QChar(178), 2},
+        {QChar(179), 3},
+        {QChar(8308), 4},
+        {QChar(8309), 5},
+        {QChar(8310), 6},
+        {QChar(8311), 7},
+        {QChar(8312), 8},
+        {QChar(8313), 9},
+        {QChar(8317), -1}
+    };
+
+    auto it = map.find(c);
+    if (it != map.end()) {
+        n = it.value();
+        return true;
+    }
+    return false;
+}
+
+static double parseUnicodeRoot(const QString &expr, int &pos)
+{
+    if (pos >= expr.length()) return NAN;
+
+    QChar c = expr[pos];
+    int numStart;
+
+    if (c == QChar(0x221A)) {
+        pos++;
+        numStart = pos;
+        while (pos < expr.length() && (expr[pos].isDigit() || expr[pos] == '.')) {
+            pos++;
+        }
+        QString numStr = expr.mid(numStart, pos - numStart);
+        if (numStr.isEmpty()) return NAN;
+        return sqrt(numStr.toDouble());
+    }
+
+    int n = 0;
+    if (superscriptToInt(c, n)) {
+        if (n < 0) return NAN;
+        pos++;
+        if (pos < expr.length() && expr[pos] == QChar(0x221A)) {
+            pos++;
+            numStart = pos;
+            while (pos < expr.length() && (expr[pos].isDigit() || expr[pos] == '.')) {
+                pos++;
+            }
+            QString numStr = expr.mid(numStart, pos - numStart);
+            if (numStr.isEmpty()) return NAN;
+            return pow(numStr.toDouble(), 1.0 / n);
+        }
+    }
+
+    return NAN;
+}
+
 // Helper to apply an operator to two numbers
 static double applyOp(double a, double b, const QString &op)
 {
@@ -337,7 +398,22 @@ QString MathConverter::evaluate(const QString &input, int &charsToDelete)
     
     for (int i = 0; i < expr.length(); i++) {
         QChar c = expr[i];
-        
+
+        int savedPos = i;
+        double rootValue = parseUnicodeRoot(expr, i);
+        if (!std::isnan(rootValue)) {
+            if (!currentNum.isEmpty()) {
+                double num = currentNum.toDouble();
+                result = applyOp(result, num, lastOp);
+                currentNum.clear();
+            }
+            result = applyOp(result, rootValue, lastOp);
+            hasOperator = true;
+            i = i - 1;
+            continue;
+        }
+        i = savedPos;
+
         if (c.isDigit() || c == '.' || (c == '-' && currentNum.isEmpty() && !hasOperator)) {
             currentNum += c;
         } else if (c == '+' || c == '-' || c == '*' || c == '/' || c == '^') {

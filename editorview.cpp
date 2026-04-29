@@ -487,49 +487,50 @@ void EditorView::onTextChanged()
 void EditorView::autoCalcResult()
 {
     if (m_isCalculating) return;
-    
+
     QTextCursor cursor = m_textEdit->textCursor();
     QString fullText = m_textEdit->toPlainText();
     int cursorPos = cursor.position();
-    
+
     if (cursorPos == 0) return;
-    
-    // Find the current word (chars before cursor)
-    int wordEnd = cursorPos;
-    while (wordEnd > 0 && !fullText[wordEnd - 1].isSpace() && fullText[wordEnd - 1] != '\n') {
-        wordEnd--;
+
+    // Walk back through trailing space/tab to find an =
+    int eqPos = cursorPos - 1;
+    while (eqPos >= 0 && (fullText[eqPos] == ' ' || fullText[eqPos] == '\t')) {
+        eqPos--;
     }
-    
-    QString word = fullText.mid(wordEnd, cursorPos - wordEnd);
-    
-    // Check if word ENDS with = (user just typed =)
-    if (word.endsWith('=')) {
-        // Extract expression before =
-        QString expr = word.left(word.length() - 1).trimmed();
-        if (expr.isEmpty()) return;
-        
-        // Check if result already exists after =
-        int eqStart = wordEnd + word.length() - 1;
-        int nextCharPos = eqStart + 1;
-        if (nextCharPos < fullText.length()) {
-            QChar nextChar = fullText[nextCharPos];
-            if (nextChar.isDigit()) {
-                // Result already there
-                return;
-            }
-        }
-        
-        // Evaluate the expression
-        int charsToDelete = 0;
-        QString result = MathConverter::evaluate(expr + "=", charsToDelete);
-        
-        if (!result.isEmpty()) {
-            m_isCalculating = true;
-            cursor.insertText(" " + result);
-            m_textEdit->setTextCursor(cursor);
-            m_isCalculating = false;
-        }
+    if (eqPos < 0 || fullText[eqPos] != '=') return;
+
+    // Walk back from = to expression start (stop at newline or another =)
+    int exprStart = eqPos;
+    while (exprStart > 0 && fullText[exprStart - 1] != '\n' && fullText[exprStart - 1] != '=') {
+        exprStart--;
     }
+
+    QString expr = fullText.mid(exprStart, eqPos - exprStart).trimmed();
+    if (expr.isEmpty()) return;
+
+    // Skip space/tab after = and bail out if a digit (existing result) is already there
+    int afterEq = eqPos + 1;
+    while (afterEq < fullText.length() && (fullText[afterEq] == ' ' || fullText[afterEq] == '\t')) {
+        afterEq++;
+    }
+    if (afterEq < fullText.length() && fullText[afterEq].isDigit()) return;
+    // If cursor moved away from = (not right after it) and nothing/newline after, don't recalculate
+    if (cursorPos != eqPos + 1 && (afterEq >= fullText.length() || fullText[afterEq] == '\n')) return;
+
+    int charsToDelete = 0;
+    QString result = MathConverter::evaluate(expr + "=", charsToDelete);
+    if (result.isEmpty()) return;
+
+    bool prevIsSpace = cursorPos > 0
+        && (fullText[cursorPos - 1] == ' ' || fullText[cursorPos - 1] == '\t');
+    QString toInsert = prevIsSpace ? result : QStringLiteral(" ") + result;
+
+    m_isCalculating = true;
+    cursor.insertText(toInsert);
+    m_textEdit->setTextCursor(cursor);
+    m_isCalculating = false;
 }
 
 void EditorView::autoConvertMath()
@@ -774,45 +775,59 @@ bool EditorView::convertMathInput()
     QTextCursor cursor = m_textEdit->textCursor();
     QString fullText = m_textEdit->toPlainText();
     int cursorPos = cursor.position();
-    
+
     if (cursorPos == 0) {
         return false;
     }
-    
+
+    // First attempt: walk back through trailing space/tab to find = and evaluate.
+    int eqPos = cursorPos - 1;
+    while (eqPos >= 0 && (fullText[eqPos] == ' ' || fullText[eqPos] == '\t')) {
+        eqPos--;
+    }
+    if (eqPos >= 0 && fullText[eqPos] == '=') {
+        int exprStart = eqPos;
+        while (exprStart > 0 && fullText[exprStart - 1] != '\n' && fullText[exprStart - 1] != '=') {
+            exprStart--;
+        }
+        QString expr = fullText.mid(exprStart, eqPos - exprStart).trimmed();
+        if (!expr.isEmpty()) {
+            int charsToDelete = 0;
+            QString result = MathConverter::evaluate(expr + "=", charsToDelete);
+            if (!result.isEmpty()) {
+                QTextCursor delCursor(m_textEdit->document());
+                delCursor.setPosition(exprStart);
+                delCursor.setPosition(cursorPos, QTextCursor::KeepAnchor);
+                delCursor.insertText(result);
+                onTextChanged();
+                return true;
+            }
+        }
+    }
+
+    // Fallback: LaTeX → Unicode symbol conversion on the cursor-adjacent word.
     int wordEnd = cursorPos;
     while (wordEnd > 0 && !fullText[wordEnd - 1].isSpace()) {
         wordEnd--;
     }
-    
     QString word = fullText.mid(wordEnd, cursorPos - wordEnd);
-    
     if (word.isEmpty()) {
         return false;
     }
-    
+
     int charsToDelete = 0;
-    QString converted;
-    
-    // First try inline calculator (expressions with =)
-    if (word.contains('=')) {
-        converted = MathConverter::evaluate(word, charsToDelete);
-    }
-    
-    // If not an expression, try math symbol conversion
-    if (converted.isEmpty()) {
-        converted = MathConverter::convert(word, charsToDelete);
-    }
-    
+    QString converted = MathConverter::convert(word, charsToDelete);
+
     if (!converted.isEmpty() && charsToDelete > 0) {
         QTextCursor delCursor(m_textEdit->document());
         delCursor.setPosition(wordEnd);
         delCursor.setPosition(cursorPos, QTextCursor::KeepAnchor);
         delCursor.insertText(converted);
-        
+
         onTextChanged();
         return true;
     }
-    
+
     return false;
 }
 
