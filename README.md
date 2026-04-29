@@ -4,50 +4,86 @@
 
 A simple and clean desktop note-taking application for students, built with C++ and Qt6.
 
-![SimpleNotebook](screenshot.png)
-
 ## Features
 
-- 🎓 **Pre-made Subject Folders**: Quick access to common school subjects
-  - German (Deutsch)
-  - Mathematics (Mathe)
-  - English (Englisch)
-  - Biology (Biologie)
-  - Chemistry (Chemie)
-  - Physics (Physik)
-  - History (Geschichte)
-  - Geography (Geografie)
-  - Music (Musik)
-  - Art (Kunst)
-  - Physical Education (Sport)
-  - Computer Science (Informatik)
+### 📚 Subject Organization
+- **12 Pre-made Subject Folders**: Quick access to common school subjects
+  - German 🇩🇪, Mathematics 📐, English 🇬🇧, Biology 🧬, Chemistry ⚗️, Physics ⚡
+  - History 📜, Geography 🌍, Music 🎵, Art 🎨, Physical Education ⚽, Computer Science 💻
+- **Custom Folder Support**: Choose your own folder location
+- **Auto Git Init**: Every subject folder automatically becomes a Git repository
 
-- 📁 **Custom Folder Support**: Choose your own folder location
-- ✏️ **Simple Text Editor**: Clean, distraction-free writing
-- 🌙 **Dark Mode**: Easy on the eyes for late-night study sessions
-- 🔍 **Search**: Find text within your notes (Ctrl+F)
-- 📊 **Status Bar**: Shows filename, word count, character count, line & column
-- 💾 **Auto-save**: Automatically saves every 30 seconds
-- ✨ **Math Symbol Converter**: Type LaTeX-style notation and press space to convert to Unicode symbols
-  - `root(3,64)` → ³√64
+### ✏️ Note Editor
+- **Clean Dark Mode UI**: Easy on the eyes for late-night study sessions
+- **Auto-save**: Automatically saves every 30 seconds
+- **Status Bar**: Shows filename, word count, character count, line & column
+- **Line Delete**: Delete entire lines with Ctrl+Backspace, Alt+Backspace, etc.
+
+### 🔢 Math Features
+- **Auto-Calculator**: Type `5+3=` → automatically shows `5+3= 8`
+- **Math Symbol Converter** (press F5):
+  - `root(3,64)` → ³√64 (cube root)
+  - `(8)root(9)` → ⁹√8 (9th root of 8)
   - `alpha`, `beta`, `gamma` → α, β, γ
   - `sqrt` → √, `sum` → Σ, `integral` → ∫
   - `1/2` → ½, `!=` → ≠, `->` → →
 
-## Screenshots
+### 💻 Embedded Tools
 
-### Start Page
-Click on any subject to instantly create/open notes for that class.
+#### Terminal
+- **Embedded Terminal**: Real terminal widget (QTermWidget) inside the app
+- **Interactive Programs**: Works with PI, Claude, and other interactive CLI tools
+- **Dark Theme**: Matches the app's dark mode
 
-### Editor View
-Clean interface with sidebar showing all your notes in the selected folder.
+#### Git Panel (Zed-style)
+- **Source Control Panel** on the right side
+- **Changes View**: See modified files with icons
+- **Commit**: Enter message and commit tracked files
+- **History**: View recent commits
+- **Sync**: Fetch, Push, Pull with dropdown menus
+- **Auto-refresh**: Updates every 30 seconds
+
+#### AI Agents Menu
+- **🤖 Agents** dropdown to launch:
+  - PI (pi-coding-agent)
+  - Claude CLI
+  - Ghostty terminal
+
+### 📥 Export
+- **Download as .md**: Save a copy of your note
+- **Export as PDF**: Convert markdown notes to PDF
+
+### 📋 Notes List Features
+**Right-click menu:**
+- Copy, Cut, Paste, Rename, Delete
+
+**Keyboard shortcuts:**
+- `Ctrl+C` / `Ctrl+X` / `Ctrl+V` - Copy, Cut, Paste
+- `Delete` - Delete note
+- `F2` - Rename
+
+### ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+N | New note |
+| Ctrl+S | Save |
+| Ctrl+F | Search |
+| Ctrl+Ö | Toggle Terminal |
+| F5 | Convert math symbols |
+| Ctrl+Backspace | Delete current line |
+| Ctrl+Delete | Delete current line |
+| Alt+Backspace | Delete current line |
+| Alt+Delete | Delete current line |
 
 ## Installation
 
 ### Prerequisites
-- Qt6 or Qt6 Widgets
+- Qt6 with Widgets and PrintSupport
 - CMake 3.16+
 - C++17 compatible compiler
+- QTermWidget6 (for embedded terminal)
+- Fedora: `sudo dnf install qtermwidget`
 
 ### Build from Source
 
@@ -71,40 +107,29 @@ make -j4
 
 ## Usage
 
-1. **Launch the app** - You'll see the start page with subject buttons
-2. **Select a Subject** - Click on any subject (e.g., "German", "Mathematics") to open that folder
-3. **Create/Edit Notes** - Use "+ New Note" to create a new file, or double-click existing files
-4. **Go Back** - Click "← Back" to return to the subject selection
+1. **Launch the app** - Starts maximized in dark mode
+2. **Select a Subject** - Click on any subject (e.g., "German", "Mathematics")
+3. **Create/Edit Notes** - Use "+ New Note" to create files
+4. **Use Terminal** - Click "Terminal" or press Ctrl+Ö
+5. **Git Panel** - Click "🔀 Git" to open Source Control
+6. **Export** - Click "📥 Export" for PDF/.md export
 
-Notes are automatically saved to `~/Documents/SchoolNotes/[Subject]/`
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| Ctrl+N | New note |
-| Ctrl+S | Save |
-| Ctrl+F | Search |
-| Ctrl+Backspace | Delete current line |
-| Ctrl+Delete | Delete current line |
-| Alt+Backspace | Delete current line |
-| Alt+Delete | Delete current line |
+Notes are saved to `~/SimpleNotebook/[Subject]/`
 
 ## Project Structure
 
 ```
 SimpleNotebook/
 ├── main.cpp           # Entry point
-├── mainwindow.h/cpp  # Main window with stacked widget
-├── startpage.h/cpp   # Subject selection start page
+├── mainwindow.h/cpp  # Main window
+├── startpage.h/cpp   # Subject selection
 ├── editorview.h/cpp  # Note editor with sidebar
-├── MathConverter.h/cpp # Math symbol to Unicode converter
+├── gitpanel.h/cpp    # Git source control panel
+├── MathConverter.h/cpp # Math symbol converter
 ├── CMakeLists.txt    # Build configuration
-└── SPEC.md           # Detailed specification
+└── SPEC.md          # Detailed specification
 ```
 
 ## License
 
 MIT License - Feel free to use and modify!
-
----
