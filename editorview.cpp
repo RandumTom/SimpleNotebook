@@ -1,4 +1,5 @@
 #include "editorview.h"
+#include "MathConverter.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -694,7 +695,87 @@ void EditorView::keyPressEvent(QKeyEvent *event)
         return;
     }
     
+    // Alt+Backspace to delete entire line
+    if (event->modifiers() & Qt::AltModifier && event->key() == Qt::Key_Backspace) {
+        deleteCurrentLine();
+        event->accept();
+        return;
+    }
+    
+    // Alt+Delete to delete entire line
+    if (event->modifiers() & Qt::AltModifier && event->key() == Qt::Key_Delete) {
+        deleteCurrentLine();
+        event->accept();
+        return;
+    }
+    
+    // Space triggers math conversion
+    if (event->key() == Qt::Key_Space && !(event->modifiers() & ~Qt::ShiftModifier)) {
+        if (convertMathInput()) {
+            event->accept();
+            return;
+        }
+    }
+    
     QWidget::keyPressEvent(event);
+}
+
+bool EditorView::convertMathInput()
+{
+    QTextCursor cursor = m_textEdit->textCursor();
+    QString text = m_textEdit->toPlainText();
+    int cursorPos = cursor.position();
+    
+    if (cursorPos == 0)
+        return false;
+    
+    // Find the word before cursor (word boundary to word boundary)
+    int start = cursorPos - 1;
+    while (start > 0 && !text[start - 1].isSpace() && text[start - 1] != '(' && text[start - 1] != ')' && text[start - 1] != ',') {
+        start--;
+    }
+    
+    // Don't process if there are brackets involved
+    QString word = text.mid(start, cursorPos - start);
+    
+    // Try to get a complete word (from last space/bracket to cursor)
+    int wordStart = cursorPos;
+    while (wordStart > 0) {
+        wordStart--;
+        QChar c = text[wordStart];
+        if (c.isSpace() || c == '(' || c == ')' || c == ',' || c == '=' || c == '+' || c == '-' || c == '*' || c == '/' || c == '^') {
+            wordStart++;
+            break;
+        }
+    }
+    if (wordStart == cursorPos)
+        return false;
+    
+    word = text.mid(wordStart, cursorPos - wordStart);
+    if (word.isEmpty())
+        return false;
+    
+    // Also include brackets for patterns like "root("
+    int charsToDelete = 0;
+    QString converted = MathConverter::convert(word, charsToDelete);
+    
+    if (!converted.isEmpty() && charsToDelete > 0) {
+        // Delete the word and replace with converted
+        QTextCursor deleteCursor(m_textEdit->document());
+        deleteCursor.setPosition(wordStart);
+        deleteCursor.setPosition(cursorPos, QTextCursor::KeepAnchor);
+        deleteCursor.insertText(converted);
+        
+        // Move cursor to end of inserted text
+        QTextCursor newCursor(m_textEdit->document());
+        newCursor.setPosition(wordStart + converted.length());
+        m_textEdit->setTextCursor(newCursor);
+        
+        onTextChanged();
+        return true;
+    }
+    
+    return false;
 }
 
 void EditorView::deleteCurrentLine()

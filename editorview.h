@@ -54,6 +54,7 @@ private:
     void updateStatusBar();
     void updateLineColumnIndicator();
     QString getCurrentFolder() const { return m_folderPath; }
+    bool convertMathInput();
     void deleteCurrentLine();
     
     // Highlight current line

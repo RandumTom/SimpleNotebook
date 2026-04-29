@@ -17,6 +17,8 @@ add_executable(${PROJECT_NAME}
     startpage.h
     editorview.cpp
     editorview.h
+    MathConverter.cpp
+    MathConverter.h
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
