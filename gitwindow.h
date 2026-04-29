@@ -5,12 +5,14 @@
 #include <QString>
 #include <QProcess>
 #include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QListWidget>
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QLabel>
+#include <QTimer>
 
 class GitWindow : public QWidget
 {
@@ -22,30 +24,42 @@ public:
 
 private slots:
     void onRefresh();
+    void onStageAll();
     void onCommit();
     void onPush();
     void onPull();
-    void onStatus();
-    void onBranch();
-    void onCheckout();
-    void onLog();
+    void onFetch();
     void onGitFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void onReadOutput();
     void onReadError();
+    void autoRefresh();
 
 private:
-    void runGit(const QString &args, const QString &description);
-    void refreshLog();
+    void runGit(const QStringList &args, const QString &description);
+    void refreshStatus();
     void refreshBranches();
+    void refreshRecentCommits();
     
     QString m_repoPath;
     QProcess *m_gitProcess;
     
-    QTextEdit *m_outputEdit;
-    QLineEdit *m_commitMsgInput;
-    QListWidget *m_branchList;
-    QListWidget *m_logList;
-    QLabel *m_statusLabel;
+    QLabel *m_headerLabel;
+    QLabel *m_branchLabel;
+    QPushButton *m_fetchBtn;
+    
+    QLabel *m_changesHeader;
+    QPushButton *m_stageAllBtn;
+    QListWidget *m_changesList;
+    QLabel *m_noChangesLabel;
+    
+    QPlainTextEdit *m_commitInput;
+    QPushButton *m_commitBtn;
+    QPushButton *m_undoCommitBtn;
+    
+    QListWidget *m_recentCommits;
+    QLabel *m_statusBar;
+    
+    QTimer *m_autoRefresh;
 };
 
 #endif // GITWINDOW_H
