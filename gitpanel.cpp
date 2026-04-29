@@ -315,6 +315,21 @@ void GitPanel::autoRefresh()
 
 void GitPanel::refreshStatus()
 {
+    // Check if this is a git repo
+    QDir repoDir(m_repoPath);
+    if (!repoDir.exists(".git")) {
+        m_changesList->clear();
+        m_noChangesLabel->setText("Not a Git repository");
+        m_noChangesLabel->setStyleSheet("color: #808080; padding: 16px; text-align: center;");
+        m_noChangesLabel->setVisible(true);
+        m_changesList->setVisible(false);
+        m_stageAllBtn->setEnabled(false);
+        return;
+    }
+    
+    m_noChangesLabel->setText("✓ No changes to commit");
+    m_noChangesLabel->setStyleSheet("color: #10B981; padding: 16px; text-align: center;");
+    
     QProcess proc;
     proc.setWorkingDirectory(m_repoPath);
     proc.start("git", {"status", "--porcelain"});
@@ -371,6 +386,17 @@ void GitPanel::refreshStatus()
 
 void GitPanel::refreshBranches()
 {
+    // Check if this is a git repo
+    QDir repoDir(m_repoPath);
+    if (!repoDir.exists(".git")) {
+        m_branchIndicator->setText("No repo");
+        m_branchIndicator->setStyleSheet("color: #808080; font-size: 12px; padding: 4px 8px; background-color: #1A1A1A; border-radius: 4px;");
+        m_pathLabel->setText(QFileInfo(m_repoPath).fileName() + " / ---");
+        return;
+    }
+    
+    m_branchIndicator->setStyleSheet("color: #10B981; font-size: 12px; padding: 4px 8px; background-color: #1A1A1A; border-radius: 4px;");
+    
     QProcess proc;
     proc.setWorkingDirectory(m_repoPath);
     
@@ -395,12 +421,28 @@ void GitPanel::refreshRecentCommits()
 {
     m_recentCommits->clear();
     
+    // Check if this is a git repo
+    QDir repoDir(m_repoPath);
+    if (!repoDir.exists(".git")) {
+        QListWidgetItem *item = new QListWidgetItem("  Not a Git repository");
+        item->setForeground(QColor("#808080"));
+        m_recentCommits->addItem(item);
+        return;
+    }
+    
     QProcess proc;
     proc.setWorkingDirectory(m_repoPath);
     proc.start("git", {"log", "--oneline", "-10", "--decorate"});
     proc.waitForFinished();
     
     QString output = QString::fromLocal8Bit(proc.readAllStandardOutput());
+    
+    if (output.trimmed().isEmpty()) {
+        QListWidgetItem *item = new QListWidgetItem("  No commits yet");
+        item->setForeground(QColor("#808080"));
+        m_recentCommits->addItem(item);
+        return;
+    }
     
     for (const QString &line : output.split('\n', Qt::SkipEmptyParts)) {
         QString commit = line.trimmed();

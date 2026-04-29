@@ -265,6 +265,11 @@ void EditorView::setFolder(const QString &folderPath)
     m_currentFile.clear();
     m_isUnsaved = false;
     updateStatusBar();
+    
+    // Update Git panel with new folder path
+    if (m_gitPanel) {
+        m_gitPanel->setRepoPath(folderPath);
+    }
 }
 
 void EditorView::loadFile(const QString &filePath)

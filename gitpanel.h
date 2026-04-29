@@ -25,6 +25,7 @@ public:
     explicit GitPanel(const QString &repoPath, QWidget *parent = nullptr);
     ~GitPanel();
     void refresh();
+    void setRepoPath(const QString &repoPath) { m_repoPath = repoPath; refresh(); }
 
 private slots:
     void onFetch();
