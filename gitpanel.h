@@ -1,5 +1,5 @@
-#ifndef GITWINDOW_H
-#define GITWINDOW_H
+#ifndef GITPANEL_H
+#define GITPANEL_H
 
 #include <QWidget>
 #include <QString>
@@ -13,29 +13,34 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTimer>
+#include <QComboBox>
+#include <QMenu>
+#include <QDockWidget>
 
-class GitWindow : public QWidget
+class GitPanel : public QDockWidget
 {
     Q_OBJECT
 
 public:
-    explicit GitWindow(const QString &repoPath, QWidget *parent = nullptr);
-    ~GitWindow();
+    explicit GitPanel(const QString &repoPath, QWidget *parent = nullptr);
+    ~GitPanel();
+    void refresh();
 
 private slots:
-    void onRefresh();
+    void onFetch();
+    void onFetchPrune();
     void onStageAll();
     void onCommit();
+    void onCommitAmend();
+    void onCommitStaged();
     void onPush();
     void onPull();
-    void onFetch();
+    void onUndoCommit();
     void onGitFinished(int exitCode, QProcess::ExitStatus exitStatus);
-    void onReadOutput();
-    void onReadError();
     void autoRefresh();
 
 private:
-    void runGit(const QStringList &args, const QString &description);
+    void runGit(const QStringList &args);
     void refreshStatus();
     void refreshBranches();
     void refreshRecentCommits();
@@ -43,23 +48,33 @@ private:
     QString m_repoPath;
     QProcess *m_gitProcess;
     
-    QLabel *m_headerLabel;
-    QLabel *m_branchLabel;
-    QPushButton *m_fetchBtn;
+    QWidget *m_content;
+    QWidget *m_header;
+    QComboBox *m_projectDropdown;
+    QLabel *m_branchIndicator;
     
     QLabel *m_changesHeader;
+    QPushButton *m_optionsBtn;
     QPushButton *m_stageAllBtn;
     QListWidget *m_changesList;
     QLabel *m_noChangesLabel;
     
+    QWidget *m_syncSection;
+    QLabel *m_pathLabel;
+    QPushButton *m_fetchBtn;
+    QMenu *m_fetchMenu;
+    
     QPlainTextEdit *m_commitInput;
+    QPushButton *m_expandBtn;
+    QPushButton *m_aiBtn;
     QPushButton *m_commitBtn;
-    QPushButton *m_undoCommitBtn;
+    QMenu *m_commitMenu;
     
     QListWidget *m_recentCommits;
-    QLabel *m_statusBar;
+    QPushButton *m_undoBtn;
     
+    QLabel *m_statusLabel;
     QTimer *m_autoRefresh;
 };
 
-#endif // GITWINDOW_H
+#endif // GITPANEL_H

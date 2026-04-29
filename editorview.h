@@ -20,6 +20,8 @@ class QTextEdit;
 // QTermWidget terminal
 #include <qtermwidget6/qtermwidget.h>
 
+class GitPanel;
+
 class EditorView : public QWidget
 {
     Q_OBJECT
@@ -32,6 +34,7 @@ public:
     void loadFile(const QString &filePath);
     QString currentFile() const { return m_currentFile; }
     QDockWidget* terminalDock() { return m_terminalDock; }
+    QDockWidget* gitDock() { return m_gitDock; }
 
 signals:
     void backRequested();
@@ -95,6 +98,10 @@ private:
     // Terminal
     QDockWidget *m_terminalDock;
     QTermWidget *m_terminal;
+    
+    // Git panel
+    QDockWidget *m_gitDock;
+    GitPanel *m_gitPanel;
 };
 
 #endif // EDITORVIEW_H

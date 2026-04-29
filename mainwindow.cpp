@@ -60,6 +60,9 @@ void MainWindow::onFolderSelected(const QString &folderPath)
     m_editorView->setFolder(folderPath);
     setCentralWidget(m_editorView);
     
+    // Add Git panel on the RIGHT side
+    addDockWidget(Qt::RightDockWidgetArea, m_editorView->gitDock());
+    
     // Show status bar for editor
     statusBar()->show();
 }

@@ -1,6 +1,6 @@
 #include "editorview.h"
 #include "MathConverter.h"
-#include "gitwindow.h"
+#include "gitpanel.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -122,15 +122,21 @@ EditorView::EditorView(QWidget *parent)
     agentsMenuBtn->setMenu(agentsMenu);
     agentsBtn->setDefaultWidget(agentsMenuBtn);
 
-    // Git button
-    QPushButton *gitBtn = new QPushButton("🔀 Git", m_toolbar);
-    gitBtn->setStyleSheet("QPushButton { background-color: transparent; color: #D4D4D4; border: none; padding: 8px 12px; border-radius: 4px; } QPushButton:hover { background-color: #3E3E42; }");
-    gitBtn->setCursor(Qt::PointingHandCursor);
-    connect(gitBtn, &QPushButton::clicked, this, [this]() {
-        if (!m_folderPath.isEmpty()) {
-            GitWindow *gitWin = new GitWindow(m_folderPath, this);
-            gitWin->show();
-        }
+    // Git panel - docked on right side
+    m_gitDock = new QDockWidget("Source Control", this);
+    m_gitDock->setAllowedAreas(Qt::RightDockWidgetArea);
+    m_gitDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable);
+    m_gitDock->setStyleSheet("QDockWidget { background-color: #1E1E1E; } QDockWidget::title { background-color: #252526; } ");
+    m_gitPanel = new GitPanel(m_folderPath, this);
+    m_gitDock->setWidget(m_gitPanel);
+    m_gitDock->setMinimumWidth(320);
+    m_gitDock->setMaximumWidth(400);
+    
+    // Git button (toggle)
+    QAction *gitAct = new QAction("🔀 Git", this);
+    gitAct->setCheckable(true);
+    connect(gitAct, &QAction::toggled, [this](bool checked) {
+        m_gitDock->setVisible(checked);
     });
 
     m_toolbar->addAction(newAct);
@@ -141,7 +147,7 @@ EditorView::EditorView(QWidget *parent)
     m_toolbar->addSeparator();
     m_toolbar->addAction(terminalAct);
     m_toolbar->addAction(agentsBtn);
-    m_toolbar->addWidget(gitBtn);
+    m_toolbar->addAction(gitAct);
 
     editorLayout->addWidget(m_toolbar);
 
