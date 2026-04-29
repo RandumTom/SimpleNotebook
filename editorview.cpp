@@ -194,8 +194,8 @@ EditorView::EditorView(QWidget *parent)
     // Create real terminal widget
     m_terminal = new QTermWidget(m_terminalDock);
     
-    // Set terminal color scheme to dark (Breeze Dark or similar)
-    m_terminal->setColorScheme("Breeze Dark");
+    // Set terminal color scheme to dark
+    m_terminal->setColorScheme("DarkPastels");
     
     // Set initial working directory
     if (!m_folderPath.isEmpty()) {
@@ -337,6 +337,51 @@ void EditorView::onTextChanged()
     if (!m_isUnsaved) {
         m_isUnsaved = true;
         updateStatusBar();
+    }
+    
+    // Auto-calculate: check if current word ends with =
+    autoCalcResult();
+}
+
+void EditorView::autoCalcResult()
+{
+    QTextCursor cursor = m_textEdit->textCursor();
+    QString fullText = m_textEdit->toPlainText();
+    int cursorPos = cursor.position();
+    
+    if (cursorPos == 0) return;
+    
+    // Find the current word (chars before cursor)
+    int wordEnd = cursorPos;
+    while (wordEnd > 0 && !fullText[wordEnd - 1].isSpace() && fullText[wordEnd - 1] != '\n') {
+        wordEnd--;
+    }
+    
+    QString word = fullText.mid(wordEnd, cursorPos - wordEnd);
+    
+    // Check if word contains = and doesn't end with = (user just typed =)
+    if (word.contains('=') && !word.endsWith('=')) {
+        // Already has result after =
+        int eqPos = word.indexOf('=');
+        if (eqPos < word.length() - 1) {
+            // Has content after =, skip
+            return;
+        }
+        
+        // Extract expression before =
+        QString expr = word.left(word.length() - 1).trimmed();
+        if (expr.isEmpty()) return;
+        
+        // Evaluate
+        int charsToDelete = 0;
+        QString result = MathConverter::evaluate(expr + "=", charsToDelete);
+        
+        if (!result.isEmpty()) {
+            // Insert result after the =
+            cursor.setPosition(wordEnd + word.length());
+            cursor.insertText(" " + result);
+            m_textEdit->setTextCursor(cursor);
+        }
     }
 }
 

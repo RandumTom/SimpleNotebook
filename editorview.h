@@ -56,6 +56,7 @@ private slots:
     void highlightAllMatches(const QString &searchText);
     
     // Inline calculator
+    void autoCalcResult();
 
 private:
     void refreshFileList();
