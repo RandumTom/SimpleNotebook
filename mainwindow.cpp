@@ -18,8 +18,8 @@ MainWindow::MainWindow(QWidget *parent)
     // Connections
     connect(m_startPage, &StartPage::folderSelected, this, &MainWindow::onFolderSelected);
     
-    // Start in full screen
-    showFullScreen();
+    // Start maximized
+    showMaximized();
 }
 
 MainWindow::~MainWindow()
