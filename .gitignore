@@ -1,0 +1,34 @@
+# Build directory
+build/
+
+# Qt specific
+*.autogen/
+*.moc/
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+.qt/
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE files
+.vscode/
+.idea/
+*.pro.user
+*.creator
+*.creator.user
+
+# macOS
+.DS_Store
+
+# Backup files
+*~
+
+# Qt Creator
+CMakeLists.txt.user*
