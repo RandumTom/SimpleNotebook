@@ -28,6 +28,8 @@
 #include <QDebug>
 #include <QApplication>
 #include <QClipboard>
+#include <QMenu>
+#include <QWidgetAction>
 
 EditorView::EditorView(QWidget *parent)
     : QWidget(parent)
@@ -111,7 +113,16 @@ EditorView::EditorView(QWidget *parent)
     QAction *calcAct = new QAction("Calculator", this);
     calcAct->setCheckable(true);
 
-    QAction *ghosttyAct = new QAction("Ghostty", this);
+    // AI Agents menu button
+    QWidgetAction *agentsBtn = new QWidgetAction(m_toolbar);
+    QPushButton *agentsMenuBtn = new QPushButton("🤖 Agents", m_toolbar);
+    agentsMenuBtn->setStyleSheet("QPushButton { background-color: transparent; color: #D4D4D4; border: none; padding: 8px 12px; border-radius: 4px; } QPushButton:hover { background-color: #3E3E42; }");
+    QMenu *agentsMenu = new QMenu(m_toolbar);
+    agentsMenu->addAction("PI (pi-coding-agent)", [this]() { spawnAgent("pi"); });
+    agentsMenu->addAction("Claude CLI", [this]() { spawnAgent("claude"); });
+    agentsMenu->addAction("Ghostty (Terminal)", [this]() { spawnAgent("ghostty"); });
+    agentsMenuBtn->setMenu(agentsMenu);
+    agentsBtn->setDefaultWidget(agentsMenuBtn);
 
     m_toolbar->addAction(newAct);
     m_toolbar->addAction(saveAct);
@@ -121,7 +132,7 @@ EditorView::EditorView(QWidget *parent)
     m_toolbar->addSeparator();
     m_toolbar->addAction(calcAct);
     m_toolbar->addAction(terminalAct);
-    m_toolbar->addAction(ghosttyAct);
+    m_toolbar->addAction(agentsBtn);
 
     editorLayout->addWidget(m_toolbar);
 
@@ -282,7 +293,7 @@ EditorView::EditorView(QWidget *parent)
     connect(calcAct, &QAction::toggled, [this](bool checked) {
         m_calcDock->setVisible(checked);
     });
-    connect(ghosttyAct, &QAction::triggered, this, &EditorView::openSystemTerminal);
+    connect(agentsMenu->menuAction(), &QAction::triggered, this, &EditorView::openSystemTerminal);
     connect(m_textEdit, &QPlainTextEdit::textChanged, this, &EditorView::onTextChanged);
     connect(m_textEdit, &QPlainTextEdit::cursorPositionChanged, this, &EditorView::onCursorPositionChanged);
     connect(m_searchInput, &QLineEdit::textChanged, this, &EditorView::onSearchTextChanged);
@@ -766,11 +777,38 @@ void EditorView::deleteCurrentLine()
 
 void EditorView::openSystemTerminal()
 {
-    QProcess *process = new QProcess(this);
+    spawnAgent("ghostty");
+}
+
+void EditorView::spawnAgent(const QString &agent)
+{
+    QString command;
+    QStringList args;
     
-    if (!m_folderPath.isEmpty()) {
-        process->setWorkingDirectory(m_folderPath);
+    // Determine what to launch based on agent type
+    if (agent == "pi") {
+        // Launch PI coding agent
+        command = "ghostty";
+        args << "-e" << "pi";
+    } else if (agent == "claude") {
+        // Launch Claude CLI
+        command = "ghostty";
+        args << "-e" << "claude";
+    } else if (agent == "ghostty") {
+        // Just open ghostty in the current folder
+        command = "ghostty";
+        if (!m_folderPath.isEmpty()) {
+            args << "-e" << "bash" << "-c" << QString("cd '%1' && $SHELL").arg(m_folderPath);
+        }
+    } else {
+        // Generic: try to run the command directly in ghostty
+        command = "ghostty";
+        args << "-e" << agent;
     }
     
-    process->start("ghostty");
+    QProcess *process = new QProcess(this);
+    if (!m_folderPath.isEmpty() && args.isEmpty()) {
+        process->setWorkingDirectory(m_folderPath);
+    }
+    process->start(command, args);
 }

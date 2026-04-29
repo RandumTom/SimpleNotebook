@@ -67,6 +67,7 @@ private:
     void deleteCurrentLine();
     void highlightCurrentLine();
     void openSystemTerminal();
+    void spawnAgent(const QString &agent);
 
     QString m_folderPath;
     QString m_currentFile;
