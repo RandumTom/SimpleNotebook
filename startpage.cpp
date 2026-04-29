@@ -1,5 +1,6 @@
 #include "startpage.h"
 
+#include <QPainter>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -168,6 +169,13 @@ StartPage::StartPage(QWidget *parent)
 
 StartPage::~StartPage()
 {
+}
+
+void StartPage::paintEvent(QPaintEvent *event)
+{
+    QPainter p(this);
+    p.fillRect(rect(), QColor(30, 30, 30));
+    event->accept();
 }
 
 void StartPage::onSubjectClicked()

@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QString>
+#include <QPaintEvent>
 
 class QPushButton;
 class QVBoxLayout;
@@ -15,6 +16,9 @@ class StartPage : public QWidget
 public:
     explicit StartPage(QWidget *parent = nullptr);
     ~StartPage();
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
 
 signals:
     void folderSelected(const QString &folderPath);
