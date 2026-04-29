@@ -33,7 +33,7 @@ static QString superscriptDigit(const QString &num)
     return result;
 }
 
-// Map of LaTeX input -> Unicode output
+// Map of LaTeX input -> Unicode output (exact matches)
 static const QMap<QString, QString> &getMathMap()
 {
     static QMap<QString, QString> map;
@@ -53,7 +53,6 @@ static const QMap<QString, QString> &getMathMap()
         map["mu"] = "μ";
         map["nu"] = "ν";
         map["xi"] = "ξ";
-        map["omicron"] = "ο";
         map["pi"] = "π";
         map["rho"] = "ρ";
         map["sigma"] = "σ";
@@ -77,7 +76,7 @@ static const QMap<QString, QString> &getMathMap()
         map["Psi"] = "Ψ";
         map["Omega"] = "Ω";
         
-        // Superscripts
+        // Superscripts (standalone - when user types just ^2)
         map["^0"] = "⁰";
         map["^1"] = "¹";
         map["^2"] = "²";
@@ -96,7 +95,7 @@ static const QMap<QString, QString> &getMathMap()
         map["^n"] = "ⁿ";
         map["^i"] = "ⁱ";
         
-        // Subscripts
+        // Subscripts (standalone)
         map["_0"] = "₀";
         map["_1"] = "₁";
         map["_2"] = "₂";
@@ -240,15 +239,26 @@ QString MathConverter::convert(const QString &input, int &charsToDelete)
 {
     charsToDelete = 0;
     
+    if (input.isEmpty())
+        return QString();
+    
+    // First check exact matches in map
+    static const QMap<QString, QString> &map = getMathMap();
+    auto it = map.find(input);
+    if (it != map.end()) {
+        charsToDelete = input.length();
+        return it.value();
+    }
+    
     // Handle root(n) - nth root
-    // Pattern: root(n) or root(n, x) -> ⁿ√x or √x
+    // Examples: root(3) -> ³√, root(3,64) -> ³√64, root(16) -> √16
     if (input.startsWith("root(")) {
-        int closeParen = input.indexOf(')');
-        if (closeParen != -1) {
-            QString inner = input.mid(5, closeParen - 5);
-            QString after = input.mid(closeParen + 1);
+        int closeParen = input.lastIndexOf(')');
+        if (closeParen > 5) {
+            QString inner = input.mid(5, closeParen - 5); // Content between parentheses
+            QString after = input.mid(closeParen + 1); // Content after closing paren
             
-            // Check if it's n,x format: root(3, 64) = cube root of 64
+            // Check for n,x format: root(3,64)
             if (inner.contains(',')) {
                 QStringList parts = inner.split(',');
                 if (parts.size() == 2) {
@@ -262,28 +272,27 @@ QString MathConverter::convert(const QString &input, int &charsToDelete)
                 }
             }
             
-            // root(n) format: root(3) = cube root
+            // Just root(n) format
             QString n = inner.trimmed();
-            if (!n.isEmpty() && n != "2") {
+            if (!n.isEmpty()) {
+                if (n == "2") {
+                    // Square root
+                    charsToDelete = input.length();
+                    return "√" + after;
+                }
                 QString superscript = superscriptDigit(n);
                 if (!superscript.isEmpty()) {
                     charsToDelete = input.length();
                     return superscript + "√" + after;
                 }
             }
-            
-            // Just root() = square root
-            if (n.isEmpty() || n == "2") {
-                charsToDelete = input.length();
-                return "√" + after;
-            }
         }
     }
     
-    // Handle nroot(x) format: nroot(3, 64) = cube root of 64
+    // Handle nroot format: nroot(3,64) = cube root of 64
     if (input.startsWith("nroot(")) {
-        int closeParen = input.indexOf(')');
-        if (closeParen != -1) {
+        int closeParen = input.lastIndexOf(')');
+        if (closeParen > 6) {
             QString inner = input.mid(6, closeParen - 6);
             QString after = input.mid(closeParen + 1);
             
@@ -300,14 +309,6 @@ QString MathConverter::convert(const QString &input, int &charsToDelete)
                 }
             }
         }
-    }
-    
-    // Normal conversion from map
-    static const QMap<QString, QString> &map = getMathMap();
-    auto it = map.find(input);
-    if (it != map.end()) {
-        charsToDelete = input.length();
-        return it.value();
     }
     
     return QString();

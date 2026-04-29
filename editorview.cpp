@@ -730,32 +730,47 @@ bool EditorView::convertMathInput()
         return false;
     
     // Find the word before cursor (word boundary to word boundary)
-    int start = cursorPos - 1;
-    while (start > 0 && !text[start - 1].isSpace() && text[start - 1] != '(' && text[start - 1] != ')' && text[start - 1] != ',') {
-        start--;
-    }
-    
-    // Don't process if there are brackets involved
-    QString word = text.mid(start, cursorPos - start);
-    
-    // Try to get a complete word (from last space/bracket to cursor)
+    // Word boundaries: space, operators, or start of text
+    // But NOT parentheses (for root(3) support)
     int wordStart = cursorPos;
+    int parenDepth = 0; // Track parenthesis depth
+    
     while (wordStart > 0) {
         wordStart--;
         QChar c = text[wordStart];
-        if (c.isSpace() || c == '(' || c == ')' || c == ',' || c == '=' || c == '+' || c == '-' || c == '*' || c == '/' || c == '^') {
+        
+        // Track parenthesis depth
+        if (c == ')') {
+            parenDepth++;
+        } else if (c == '(') {
+            if (parenDepth > 0) {
+                parenDepth--;
+            } else {
+                // Found opening paren of a function like "root("
+                // Include it in the word
+                continue;
+            }
+        }
+        
+        // If we're inside parentheses, continue
+        if (parenDepth > 0)
+            continue;
+            
+        // Normal word boundary
+        if (c.isSpace() || c == ',' || c == '=' || c == '+' || c == '-' || c == '*' || c == '/' || c == '^') {
             wordStart++;
             break;
         }
     }
+    
     if (wordStart == cursorPos)
         return false;
     
-    word = text.mid(wordStart, cursorPos - wordStart);
+    QString word = text.mid(wordStart, cursorPos - wordStart);
     if (word.isEmpty())
         return false;
     
-    // Also include brackets for patterns like "root("
+    // Try to convert
     int charsToDelete = 0;
     QString converted = MathConverter::convert(word, charsToDelete);
     
