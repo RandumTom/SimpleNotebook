@@ -12,10 +12,10 @@
 StartPage::StartPage(QWidget *parent)
     : QWidget(parent)
 {
-    // Fix for graphical glitches
-    setAttribute(Qt::WA_OpaquePaintEvent, false);
+    // Ensure widget fills all available space
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     
-    // Dark mode background
+    // Dark mode background - solid, covers everything
     setStyleSheet(
         "QWidget {"
         "   background-color: #1E1E1E;"
@@ -168,6 +168,9 @@ StartPage::StartPage(QWidget *parent)
     mainLayout->addWidget(m_folderLabel);
 
     connect(customBtn, &QPushButton::clicked, this, &StartPage::onSelectFolder);
+    
+    // Ensure we fill all space
+    setMinimumSize(800, 600);
 }
 
 StartPage::~StartPage()

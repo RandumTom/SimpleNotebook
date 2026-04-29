@@ -14,6 +14,9 @@ MainWindow::MainWindow(QWidget *parent)
     
     // Start with start page
     setCentralWidget(m_startPage);
+    
+    // Ensure central widget area has solid background
+    centralWidget()->setStyleSheet("background-color: #1E1E1E;");
 
     // Connections
     connect(m_startPage, &StartPage::folderSelected, this, &MainWindow::onFolderSelected);
