@@ -9,7 +9,6 @@
 #include <QGroupBox>
 #include <QDir>
 #include <QProcess>
-#include <QPixmap>
 
 StartPage::StartPage(QWidget *parent)
     : QWidget(parent)
@@ -23,22 +22,6 @@ StartPage::StartPage(QWidget *parent)
     // Main layout with margins
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(40, 40, 40, 40);
-
-    // Title image
-    QLabel *titleImage = new QLabel(this);
-    QPixmap titlePixmap(":/Title_Image.png");
-    if (titlePixmap.isNull()) {
-        titlePixmap = QPixmap("Title_Image.png");
-    }
-    if (!titlePixmap.isNull()) {
-        titlePixmap = titlePixmap.scaledToWidth(400, Qt::SmoothTransformation);
-        titleImage->setPixmap(titlePixmap);
-        titleImage->setAlignment(Qt::AlignCenter);
-        titleImage->setStyleSheet("margin-bottom: 20px;");
-    } else {
-        delete titleImage;
-        titleImage = nullptr;
-    }
 
     // Welcome label
     QLabel *welcomeLabel = new QLabel("📚 SimpleNotebook", this);
@@ -173,9 +156,6 @@ StartPage::StartPage(QWidget *parent)
 
     // Add everything to layout
     mainLayout->addStretch();  // Push content to center
-    if (!titlePixmap.isNull()) {
-        mainLayout->addWidget(titleImage);
-    }
     mainLayout->addWidget(welcomeLabel);
     mainLayout->addWidget(subtitleLabel);
     mainLayout->addWidget(subjectsGroup);

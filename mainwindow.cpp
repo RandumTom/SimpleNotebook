@@ -4,11 +4,16 @@
 #include <QStatusBar>
 #include <QMenuBar>
 #include <QLayout>
+#include <QIcon>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle("SimpleNotebook");
+    setWindowIcon(QIcon(":/Title_Image.png"));
+    if (windowIcon().isNull()) {
+        setWindowIcon(QIcon("Title_Image.png"));
+    }
     setStyleSheet("QMainWindow { background-color: #1E1E1E; border: none; }");
 
     // Hide bars BEFORE creating widgets
