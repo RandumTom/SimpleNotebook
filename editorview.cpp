@@ -680,5 +680,78 @@ void EditorView::keyPressEvent(QKeyEvent *event)
         return;
     }
     
+    // Ctrl+Backspace to delete entire line
+    if (event->modifiers() & Qt::ControlModifier && event->key() == Qt::Key_Backspace) {
+        deleteCurrentLine();
+        event->accept();
+        return;
+    }
+    
+    // Ctrl+Delete to delete entire line (alternative)
+    if (event->modifiers() & Qt::ControlModifier && event->key() == Qt::Key_Delete) {
+        deleteCurrentLine();
+        event->accept();
+        return;
+    }
+    
     QWidget::keyPressEvent(event);
+}
+
+void EditorView::deleteCurrentLine()
+{
+    QTextCursor cursor = m_textEdit->textCursor();
+    
+    // Select the entire line
+    cursor.select(QTextCursor::LineUnderCursor);
+    
+    // Also select the newline character at the end (unless at end of document)
+    cursor.movePosition(QTextCursor::EndOfLine);
+    cursor.insertText("");
+    
+    // Re-select and delete
+    cursor.select(QTextCursor::LineUnderCursor);
+    
+    // If there's a newline after, include it
+    cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+    QString selected = cursor.selectedText();
+    if (selected.isEmpty() || selected == "\n") {
+        // Already at end, just delete the line
+        cursor.select(QTextCursor::LineUnderCursor);
+    } else if (!selected.contains(QChar(QChar::CarriageReturn)) && !selected.contains('\n')) {
+        // No newline found, extend selection
+        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+    }
+    
+    // Remove selection but don't delete yet - instead rebuild
+    QTextCursor tempCursor = m_textEdit->textCursor();
+    tempCursor.select(QTextCursor::LineUnderCursor);
+    
+    // Get text before and after the line
+    QTextCursor startCursor = tempCursor;
+    startCursor.movePosition(QTextCursor::StartOfLine);
+    startCursor.setPosition(tempCursor.position(), QTextCursor::KeepAnchor);
+    
+    // Get content before this line
+    QTextCursor beforeCursor(startCursor);
+    beforeCursor.setPosition(0);
+    beforeCursor.setPosition(startCursor.position(), QTextCursor::KeepAnchor);
+    QString beforeText = beforeCursor.selectedText();
+    
+    // Get content after this line (including next line's content)
+    QTextCursor afterCursor(tempCursor);
+    afterCursor.movePosition(QTextCursor::EndOfLine);
+    afterCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+    afterCursor.setPosition(tempCursor.position(), QTextCursor::MoveAnchor);
+    afterCursor.setPosition(m_textEdit->document()->characterCount(), QTextCursor::KeepAnchor);
+    QString afterText = afterCursor.selectedText();
+    
+    // Replace entire content
+    m_textEdit->setPlainText(beforeText + afterText);
+    
+    // Position cursor at end of what was before
+    QTextCursor newCursor = m_textEdit->textCursor();
+    newCursor.setPosition(beforeText.length());
+    m_textEdit->setTextCursor(newCursor);
+    
+    onTextChanged();
 }
