@@ -6,8 +6,6 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle("SimpleNotebook");
-    setMinimumSize(700, 500);
-    resize(1000, 700);
     setStyleSheet("QMainWindow { background-color: #1E1E1E; }");
 
     // Create pages
@@ -19,6 +17,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Connections
     connect(m_startPage, &StartPage::folderSelected, this, &MainWindow::onFolderSelected);
+    
+    // Start in full screen
+    showFullScreen();
 }
 
 MainWindow::~MainWindow()
