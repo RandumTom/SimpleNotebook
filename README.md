@@ -20,12 +20,17 @@ A simple and clean desktop note-taking application for students, built with C++ 
 - **Line Delete**: Delete entire lines with Ctrl+Backspace, Alt+Backspace, etc.
 
 ### 🔢 Math Features
-- **Auto-Calculator**: Type `5+3=` → automatically shows `5+3= 8`
+- **Auto-Calculator**: Type any expression ending with `=` → automatically shows the result
+  - `5+3=` → `5+3= 8`
+  - `√9=` → `√9= 3` (unicode square root)
+  - `³√64=` → `³√64= 4` (unicode cube root)
+  - `√4+√9=` → `√4+√9= 7` (combined expressions)
+  - Works with or without space before `=`: `√9 =` or `√9=` both calculate
 - **Math Symbol Converter** (press F5):
   - `root(3,64)` → ³√64 (cube root)
   - `(8)root(9)` → ⁹√8 (9th root of 8)
-  - `alpha`, `beta`, `gamma` → α, β, γ
   - `sqrt` → √, `sum` → Σ, `integral` → ∫
+  - `alpha`, `beta`, `gamma` → α, β, γ
   - `1/2` → ½, `!=` → ≠, `->` → →
 
 ### 💻 Embedded Tools
