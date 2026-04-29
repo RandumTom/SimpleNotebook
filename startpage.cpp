@@ -8,6 +8,7 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QDir>
+#include <QProcess>
 
 StartPage::StartPage(QWidget *parent)
     : QWidget(parent)
@@ -186,6 +187,15 @@ void StartPage::onSubjectClicked()
     if (!dir.mkpath(documentsPath)) {
         return;
     }
+    
+    // Initialize git repo if not already
+    QDir gitDir(documentsPath);
+    if (!gitDir.exists(".git")) {
+        QProcess gitInit;
+        gitInit.setWorkingDirectory(documentsPath);
+        gitInit.start("git", {"init"});
+        gitInit.waitForFinished();
+    }
 
     m_folderLabel->setText("📂 " + documentsPath);
     emit folderSelected(documentsPath);
@@ -201,6 +211,15 @@ void StartPage::onSelectFolder()
     );
 
     if (!folderPath.isEmpty()) {
+        // Initialize git repo if not already
+        QDir gitDir(folderPath);
+        if (!gitDir.exists(".git")) {
+            QProcess gitInit;
+            gitInit.setWorkingDirectory(folderPath);
+            gitInit.start("git", {"init"});
+            gitInit.waitForFinished();
+        }
+        
         m_folderLabel->setText("📂 " + folderPath);
         emit folderSelected(folderPath);
     }
