@@ -108,5 +108,3 @@ SimpleNotebook/
 MIT License - Feel free to use and modify!
 
 ---
-
-*Built with 💜 and vibes*

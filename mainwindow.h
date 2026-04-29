@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QStackedWidget>
 #include <QString>
 
 class StartPage;
@@ -20,7 +19,6 @@ private slots:
     void onFolderSelected(const QString &folderPath);
 
 private:
-    QStackedWidget *m_stackedWidget;
     StartPage *m_startPage;
     EditorView *m_editorView;
 };

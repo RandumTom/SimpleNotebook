@@ -5,14 +5,17 @@
 #include <QString>
 #include <QTimer>
 #include <QListWidgetItem>
+#include <QDockWidget>
+#include <QPlainTextEdit>
+#include <QLineEdit>
 
-class QPlainTextEdit;
-class QListWidget;
 class QPushButton;
 class QLabel;
 class QToolBar;
 class QStatusBar;
 class QLineEdit;
+class QDockWidget;
+class QTextEdit;
 
 class EditorView : public QWidget
 {
@@ -25,6 +28,7 @@ public:
     void setFolder(const QString &folderPath);
     void loadFile(const QString &filePath);
     QString currentFile() const { return m_currentFile; }
+    QDockWidget* terminalDock() { return m_terminalDock; }
 
 signals:
     void backRequested();
@@ -47,6 +51,11 @@ private slots:
     void onSearchNext();
     void onSearchPrevious();
     void highlightAllMatches(const QString &searchText);
+    
+    // Calculator
+    void onCalcEquals();
+    void onCalcClear();
+    void onTerminalCommand();
 
 private:
     void refreshFileList();
@@ -56,15 +65,14 @@ private:
     QString getCurrentFolder() const { return m_folderPath; }
     bool convertMathInput();
     void deleteCurrentLine();
-    
-    // Highlight current line
     void highlightCurrentLine();
+    void openSystemTerminal();
 
     QString m_folderPath;
     QString m_currentFile;
     bool m_isUnsaved = false;
     QTimer *m_autoSaveTimer;
-    int m_autoSaveInterval = 30000; // 30 seconds
+    int m_autoSaveInterval = 30000;
 
     QWidget *m_sidebar;
     QToolBar *m_toolbar;
@@ -73,7 +81,7 @@ private:
     QLabel *m_folderLabel;
     QStatusBar *m_statusBar;
     
-    // Search widgets
+    // Search
     QWidget *m_searchBar;
     QLineEdit *m_searchInput;
     QLabel *m_searchLabel;
@@ -81,7 +89,16 @@ private:
     QPushButton *m_searchNextBtn;
     QPushButton *m_searchCloseBtn;
     bool m_searchVisible = false;
-    int m_currentMatchIndex = 0;
+    
+    // Terminal
+    QDockWidget *m_terminalDock;
+    QTextEdit *m_terminalOutput;
+    QLineEdit *m_terminalInput;
+    
+    // Calculator
+    QDockWidget *m_calcDock;
+    QLineEdit *m_calcDisplay;
+    QString m_calcCurrent;
 };
 
 #endif // EDITORVIEW_H

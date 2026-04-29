@@ -9,7 +9,6 @@
 #include <QFileInfo>
 #include <QToolBar>
 #include <QListWidget>
-#include <QPlainTextEdit>
 #include <QLabel>
 #include <QStatusBar>
 #include <QVBoxLayout>
@@ -18,69 +17,39 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QFont>
-#include <QSyntaxHighlighter>
 #include <QScrollBar>
 #include <QKeyEvent>
 #include <QRegularExpression>
 #include <QTextCursor>
 #include <QColor>
+#include <QDockWidget>
+#include <QProcess>
+#include <QGridLayout>
+#include <QDebug>
+#include <QApplication>
+#include <QClipboard>
 
 EditorView::EditorView(QWidget *parent)
     : QWidget(parent)
     , m_autoSaveTimer(new QTimer(this))
 {
-    // Dark mode stylesheet
     setStyleSheet(
-        "QWidget {"
-        "   background-color: #1E1E1E;"
-        "   color: #D4D4D4;"
-        "}"
-        "QToolBar {"
-        "   background-color: #252526;"
-        "   border: none;"
-        "   spacing: 5px;"
-        "   padding: 5px;"
-        "}"
-        "QStatusBar {"
-        "   background-color: #007ACC;"
-        "   color: #FFFFFF;"
-        "   border: none;"
-        "}"
-        "QListWidget {"
-        "   background-color: #1E1E1E;"
-        "   color: #D4D4D4;"
-        "   border: 1px solid #3E3E42;"
-        "   border-radius: 6px;"
-        "   outline: none;"
-        "}"
-        "QListWidget::item {"
-        "   padding: 10px 8px;"
-        "   border-bottom: 1px solid #2D2D2D;"
-        "}"
-        "QListWidget::item:selected {"
-        "   background-color: #3730A3;"
-        "   color: #FFFFFF;"
-        "}"
-        "QListWidget::item:hover:!selected {"
-        "   background-color: #2D2D2D;"
-        "}"
-        "QPushButton {"
-        "   background-color: transparent;"
-        "   color: #D4D4D4;"
-        "   border: none;"
-        "   padding: 8px 12px;"
-        "   border-radius: 4px;"
-        "}"
-        "QPushButton:hover {"
-        "   background-color: #3E3E42;"
-        "}"
+        "QWidget { background-color: #1E1E1E; color: #D4D4D4; }"
+        "QToolBar { background-color: #252526; border: none; spacing: 5px; padding: 5px; }"
+        "QStatusBar { background-color: #007ACC; color: #FFFFFF; border: none; }"
+        "QListWidget { background-color: #1E1E1E; color: #D4D4D4; border: 1px solid #3E3E42; border-radius: 6px; }"
+        "QListWidget::item { padding: 10px 8px; }"
+        "QListWidget::item:selected { background-color: #3730A3; color: #FFFFFF; }"
+        "QListWidget::item:hover:!selected { background-color: #2D2D2D; }"
+        "QPushButton { background-color: transparent; color: #D4D4D4; border: none; padding: 8px 12px; border-radius: 4px; }"
+        "QPushButton:hover { background-color: #3E3E42; }"
     );
 
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    // ============= LEFT SIDEBAR =============
+    // LEFT SIDEBAR
     m_sidebar = new QWidget(this);
     m_sidebar->setMaximumWidth(220);
     m_sidebar->setMinimumWidth(160);
@@ -89,69 +58,30 @@ EditorView::EditorView(QWidget *parent)
     sidebarLayout->setContentsMargins(10, 10, 10, 10);
     sidebarLayout->setSpacing(10);
 
-    // Back button
     QPushButton *backBtn = new QPushButton("  ←  Back to Subjects", m_sidebar);
-    backBtn->setStyleSheet(
-        "QPushButton {"
-        "   background-color: transparent;"
-        "   color: #D4D4D4;"
-        "   border: 1px solid #3E3E42;"
-        "   border-radius: 6px;"
-        "   padding: 10px;"
-        "   text-align: left;"
-        "}"
-        "QPushButton:hover {"
-        "   background-color: #3E3E42;"
-        "   border-color: #7C3AED;"
-        "}"
-    );
+    backBtn->setStyleSheet("QPushButton { background-color: transparent; color: #D4D4D4; border: 1px solid #3E3E42; border-radius: 6px; padding: 10px; text-align: left; } QPushButton:hover { background-color: #3E3E42; border-color: #7C3AED; }");
     sidebarLayout->addWidget(backBtn);
 
-    // Folder label
     m_folderLabel = new QLabel(m_sidebar);
-    m_folderLabel->setStyleSheet(
-        "font-size: 11px; "
-        "color: #808080;"
-        "padding: 5px 0;"
-    );
+    m_folderLabel->setStyleSheet("font-size: 11px; color: #808080; padding: 5px 0;");
     m_folderLabel->setWordWrap(true);
     sidebarLayout->addWidget(m_folderLabel);
 
-    // File list label
     QLabel *filesLabel = new QLabel("  📝 Notes", m_sidebar);
-    filesLabel->setStyleSheet(
-        "font-size: 12px; "
-        "font-weight: bold; "
-        "color: #808080;"
-        "padding: 10px 0 5px 0;"
-    );
+    filesLabel->setStyleSheet("font-size: 12px; font-weight: bold; color: #808080; padding: 10px 0 5px 0;");
     sidebarLayout->addWidget(filesLabel);
 
-    // File list
     m_fileList = new QListWidget(m_sidebar);
     m_fileList->setFont(QFont("Segoe UI", 11));
     sidebarLayout->addWidget(m_fileList, 1);
 
-    // Add button
     QPushButton *addBtn = new QPushButton("  +  New Note", m_sidebar);
-    addBtn->setStyleSheet(
-        "QPushButton {"
-        "   background-color: #10B981;"
-        "   color: white;"
-        "   border: none;"
-        "   border-radius: 8px;"
-        "   padding: 12px;"
-        "   font-weight: 500;"
-        "}"
-        "QPushButton:hover {"
-        "   background-color: #059669;"
-        "}"
-    );
+    addBtn->setStyleSheet("QPushButton { background-color: #10B981; color: white; border: none; border-radius: 8px; padding: 12px; font-weight: 500; } QPushButton:hover { background-color: #059669; }");
     sidebarLayout->addWidget(addBtn);
 
     mainLayout->addWidget(m_sidebar);
 
-    // ============= RIGHT SIDE - EDITOR =============
+    // RIGHT SIDE
     QWidget *editorArea = new QWidget(this);
     QVBoxLayout *editorLayout = new QVBoxLayout(editorArea);
     editorLayout->setContentsMargins(0, 0, 0, 0);
@@ -163,180 +93,203 @@ EditorView::EditorView(QWidget *parent)
 
     QAction *newAct = new QAction("New", this);
     newAct->setShortcut(QKeySequence::New);
-    newAct->setIconText("New");
 
     QAction *saveAct = new QAction("Save", this);
     saveAct->setShortcut(QKeySequence::Save);
+
+    QAction *convertAct = new QAction("Convert (F5)", this);
+    convertAct->setShortcut(Qt::Key_F5);
 
     QAction *searchAct = new QAction("Search", this);
     searchAct->setShortcut(QKeySequence::Find);
     searchAct->setCheckable(true);
 
+    QAction *terminalAct = new QAction("Terminal (Ctrl+Ö)", this);
+    terminalAct->setCheckable(true);
+    terminalAct->setShortcut(Qt::CTRL | Qt::Key_O);
+
+    QAction *calcAct = new QAction("Calculator", this);
+    calcAct->setCheckable(true);
+
+    QAction *ghosttyAct = new QAction("Ghostty", this);
+
     m_toolbar->addAction(newAct);
     m_toolbar->addAction(saveAct);
     m_toolbar->addSeparator();
+    m_toolbar->addAction(convertAct);
     m_toolbar->addAction(searchAct);
+    m_toolbar->addSeparator();
+    m_toolbar->addAction(calcAct);
+    m_toolbar->addAction(terminalAct);
+    m_toolbar->addAction(ghosttyAct);
 
     editorLayout->addWidget(m_toolbar);
 
-    // Search bar (hidden by default)
+    // Search bar
     m_searchBar = new QWidget(editorArea);
-    m_searchBar->setStyleSheet(
-        "background-color: #2D2D30;"
-        "border-bottom: 1px solid #3E3E42;"
-        "padding: 8px;"
-    );
+    m_searchBar->setStyleSheet("background-color: #2D2D30; border-bottom: 1px solid #3E3E42; padding: 8px;");
     m_searchBar->setVisible(false);
 
     QHBoxLayout *searchLayout = new QHBoxLayout(m_searchBar);
     searchLayout->setContentsMargins(10, 5, 10, 5);
     searchLayout->setSpacing(10);
 
-    QLabel *searchIcon = new QLabel("🔍", m_searchBar);
-    searchIcon->setStyleSheet("font-size: 14px;");
-    searchLayout->addWidget(searchIcon);
-
     m_searchInput = new QLineEdit(m_searchBar);
-    m_searchInput->setPlaceholderText("Search in document...");
-    m_searchInput->setStyleSheet(
-        "QLineEdit {"
-        "   background-color: #1E1E1E;"
-        "   color: #D4D4D4;"
-        "   border: 1px solid #3E3E42;"
-        "   border-radius: 4px;"
-        "   padding: 6px 10px;"
-        "   font-size: 13px;"
-        "}"
-        "QLineEdit:focus {"
-        "   border-color: #7C3AED;"
-        "}"
-    );
+    m_searchInput->setPlaceholderText("Search...");
+    m_searchInput->setStyleSheet("QLineEdit { background-color: #1E1E1E; color: #D4D4D4; border: 1px solid #3E3E42; border-radius: 4px; padding: 6px; } QLineEdit:focus { border-color: #7C3AED; }");
     m_searchInput->setMinimumWidth(250);
     searchLayout->addWidget(m_searchInput);
 
     m_searchLabel = new QLabel("", m_searchBar);
-    m_searchLabel->setStyleSheet("color: #808080; font-size: 12px;");
+    m_searchLabel->setStyleSheet("color: #808080;");
     searchLayout->addWidget(m_searchLabel);
-
     searchLayout->addStretch();
 
     m_searchPrevBtn = new QPushButton("▲", m_searchBar);
     m_searchPrevBtn->setFixedSize(30, 30);
-    m_searchPrevBtn->setStyleSheet(
-        "QPushButton {"
-        "   background-color: transparent;"
-        "   border: 1px solid #3E3E42;"
-        "   border-radius: 4px;"
-        "}"
-        "QPushButton:hover { background-color: #3E3E42; }"
-    );
     searchLayout->addWidget(m_searchPrevBtn);
 
     m_searchNextBtn = new QPushButton("▼", m_searchBar);
     m_searchNextBtn->setFixedSize(30, 30);
-    m_searchNextBtn->setStyleSheet(
-        "QPushButton {"
-        "   background-color: transparent;"
-        "   border: 1px solid #3E3E42;"
-        "   border-radius: 4px;"
-        "}"
-        "QPushButton:hover { background-color: #3E3E42; }"
-    );
     searchLayout->addWidget(m_searchNextBtn);
 
     m_searchCloseBtn = new QPushButton("✕", m_searchBar);
     m_searchCloseBtn->setFixedSize(30, 30);
-    m_searchCloseBtn->setStyleSheet(
-        "QPushButton {"
-        "   background-color: transparent;"
-        "   color: #808080;"
-        "   border: none;"
-        "}"
-        "QPushButton:hover { color: #D4D4D4; background-color: #EF4444; }"
-    );
     searchLayout->addWidget(m_searchCloseBtn);
 
     editorLayout->addWidget(m_searchBar);
 
-    // Text editor with line numbers
-    QWidget *editorContainer = new QWidget(editorArea);
-    QHBoxLayout *editorContainerLayout = new QHBoxLayout(editorContainer);
-    editorContainerLayout->setContentsMargins(0, 0, 0, 0);
-    editorContainerLayout->setSpacing(0);
-
-    // Line numbers area (we'll use a custom approach with the text edit)
-    m_textEdit = new QPlainTextEdit(editorContainer);
+    // Text editor
+    m_textEdit = new QPlainTextEdit(editorArea);
     m_textEdit->setFont(QFont("Consolas", 14));
     m_textEdit->setStyleSheet(
-        "QPlainTextEdit {"
-        "   background-color: #1E1E1E;"
-        "   color: #D4D4D4;"
-        "   border: none;"
-        "   padding: 10px;"
-        "   padding-left: 50px;"
-        "   selection-background-color: #3730A3;"
-        "   selection-color: #FFFFFF;"
-        "}"
-        "QPlainTextEdit:focus {"
-        "   outline: none;"
-        "}"
-        "QScrollBar:vertical {"
-        "   background-color: #1E1E1E;"
-        "   width: 12px;"
-        "   border: none;"
-        "}"
-        "QScrollBar::handle:vertical {"
-        "   background-color: #424242;"
-        "   border-radius: 6px;"
-        "   min-height: 30px;"
-        "}"
-        "QScrollBar::handle:vertical:hover {"
-        "   background-color: #606060;"
-        "}"
-        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
-        "   height: 0px;"
-        "}"
-        "QScrollBar:horizontal {"
-        "   background-color: #1E1E1E;"
-        "   height: 12px;"
-        "}"
-        "QScrollBar::handle:horizontal {"
-        "   background-color: #424242;"
-        "   border-radius: 6px;"
-        "   min-width: 30px;"
-        "}"
+        "QPlainTextEdit { background-color: #1E1E1E; color: #D4D4D4; border: none; padding: 10px; }"
+        "QScrollBar:vertical { background-color: #1E1E1E; width: 12px; }"
+        "QScrollBar::handle:vertical { background-color: #424242; border-radius: 6px; }"
     );
-    
-    // Enable word wrap
     m_textEdit->setLineWrapMode(QPlainTextEdit::WidgetWidth);
-
-    editorContainerLayout->addWidget(m_textEdit);
-
-    editorLayout->addWidget(editorContainer, 1);
+    editorLayout->addWidget(m_textEdit, 1);
 
     // Status bar
     m_statusBar = new QStatusBar(editorArea);
     editorLayout->addWidget(m_statusBar);
 
+    editorArea->setLayout(editorLayout);
     mainLayout->addWidget(editorArea, 1);
 
-    // ============= CONNECTIONS =============
+    // Terminal Dock (hidden by default)
+    m_terminalDock = new QDockWidget("Terminal", this);
+    m_terminalDock->setAllowedAreas(Qt::BottomDockWidgetArea);
+    m_terminalDock->setMaximumHeight(200);
+    m_terminalDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable);
+    m_terminalDock->setStyleSheet("QDockWidget { background-color: #0D0D0D; color: #00FF00; }");
+
+    QWidget *terminalWidget = new QWidget(m_terminalDock);
+    QVBoxLayout *terminalLayout = new QVBoxLayout(terminalWidget);
+    terminalLayout->setContentsMargins(5, 5, 5, 5);
+
+    m_terminalOutput = new QTextEdit(terminalWidget);
+    m_terminalOutput->setFont(QFont("Consolas", 11));
+    m_terminalOutput->setStyleSheet("background-color: #0D0D0D; color: #00FF00; border: none;");
+    m_terminalOutput->setReadOnly(true);
+    terminalLayout->addWidget(m_terminalOutput, 1);
+
+    QHBoxLayout *terminalInputLayout = new QHBoxLayout();
+    terminalInputLayout->addWidget(new QLabel("$ ", terminalWidget));
+    m_terminalInput = new QLineEdit(terminalWidget);
+    m_terminalInput->setStyleSheet("background-color: #1A1A1A; color: #00FF00; border: 1px solid #333; padding: 4px;");
+    terminalInputLayout->addWidget(m_terminalInput, 1);
+    terminalLayout->addLayout(terminalInputLayout);
+
+    m_terminalDock->setWidget(terminalWidget);
+    m_terminalDock->hide();
+
+    // Calculator Dock (hidden by default)
+    m_calcDock = new QDockWidget("Calculator", this);
+    m_calcDock->setAllowedAreas(Qt::BottomDockWidgetArea);
+    m_calcDock->setMaximumHeight(250);
+    m_calcDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable);
+
+    QWidget *calcWidget = new QWidget(m_calcDock);
+    QVBoxLayout *calcLayout = new QVBoxLayout(calcWidget);
+    calcLayout->setContentsMargins(10, 10, 10, 10);
+
+    m_calcDisplay = new QLineEdit(calcWidget);
+    m_calcDisplay->setFont(QFont("Consolas", 18));
+    m_calcDisplay->setStyleSheet("background-color: #1A1A1A; color: #00FF00; border: 2px solid #333; border-radius: 5px; padding: 10px; text-align: right;");
+    m_calcDisplay->setReadOnly(true);
+    m_calcDisplay->setPlaceholderText("0");
+    calcLayout->addWidget(m_calcDisplay);
+
+    QGridLayout *calcButtons = new QGridLayout();
+    QStringList buttons = {"7", "8", "9", "/", "4", "5", "6", "*", "1", "2", "3", "-", "0", ".", "=", "+"};
+    QStringList styles = {
+        "QPushButton { background-color: #333; color: white; border: none; border-radius: 5px; padding: 15px; font-size: 16px; } QPushButton:hover { background-color: #444; }",
+        "QPushButton { background-color: #7C3AED; color: white; border: none; border-radius: 5px; padding: 15px; font-size: 16px; } QPushButton:hover { background-color: #8B5CF6; }",
+        "QPushButton { background-color: #EF4444; color: white; border: none; border-radius: 5px; padding: 15px; font-size: 16px; } QPushButton:hover { background-color: #DC2626; }"
+    };
+
+    for (int i = 0; i < buttons.size(); i++) {
+        QPushButton *btn = new QPushButton(buttons[i], calcWidget);
+        btn->setFont(QFont("Consolas", 16));
+        
+        if (buttons[i] == "=") {
+            btn->setStyleSheet(styles[1]);
+        } else if (buttons[i] == "C") {
+            btn->setStyleSheet(styles[2]);
+        } else if (buttons[i] == "/" || buttons[i] == "*" || buttons[i] == "-" || buttons[i] == "+") {
+            btn->setStyleSheet("QPushButton { background-color: #4A90D9; color: white; border: none; border-radius: 5px; padding: 15px; font-size: 16px; } QPushButton:hover { background-color: #5BA0E9; }");
+        } else {
+            btn->setStyleSheet(styles[0]);
+        }
+        
+        connect(btn, &QPushButton::clicked, this, [this, btn]() {
+            QString text = btn->text();
+            if (text == "=") {
+                onCalcEquals();
+            } else if (text == "C") {
+                onCalcClear();
+            } else {
+                m_calcCurrent += text;
+                m_calcDisplay->setText(m_calcCurrent);
+            }
+        });
+        
+        int row = i / 4;
+        int col = i % 4;
+        if (buttons[i] == "=") {
+            calcButtons->addWidget(btn, row, 0, 1, 4);
+        } else {
+            calcButtons->addWidget(btn, row, col);
+        }
+    }
+    calcLayout->addLayout(calcButtons);
+
+    m_calcDock->setWidget(calcWidget);
+    m_calcDock->hide();
+
+    // CONNECTIONS
     connect(backBtn, &QPushButton::clicked, this, &EditorView::backRequested);
     connect(addBtn, &QPushButton::clicked, this, &EditorView::onAddClicked);
     connect(m_fileList, &QListWidget::itemDoubleClicked, this, &EditorView::onFileSelected);
     connect(newAct, &QAction::triggered, this, &EditorView::onNew);
     connect(saveAct, &QAction::triggered, this, &EditorView::onSave);
+    connect(convertAct, &QAction::triggered, this, &EditorView::convertMathInput);
     connect(searchAct, &QAction::triggered, this, &EditorView::onSearchToggle);
+    connect(terminalAct, &QAction::toggled, [this](bool checked) {
+        m_terminalDock->setVisible(checked);
+    });
+    connect(calcAct, &QAction::toggled, [this](bool checked) {
+        m_calcDock->setVisible(checked);
+    });
+    connect(ghosttyAct, &QAction::triggered, this, &EditorView::openSystemTerminal);
     connect(m_textEdit, &QPlainTextEdit::textChanged, this, &EditorView::onTextChanged);
     connect(m_textEdit, &QPlainTextEdit::cursorPositionChanged, this, &EditorView::onCursorPositionChanged);
-    
-    // Search connections
     connect(m_searchInput, &QLineEdit::textChanged, this, &EditorView::onSearchTextChanged);
     connect(m_searchNextBtn, &QPushButton::clicked, this, &EditorView::onSearchNext);
     connect(m_searchPrevBtn, &QPushButton::clicked, this, &EditorView::onSearchPrevious);
     connect(m_searchCloseBtn, &QPushButton::clicked, this, &EditorView::onSearchToggle);
-    
-    // Auto-save timer
+    connect(m_terminalInput, &QLineEdit::returnPressed, this, &EditorView::onTerminalCommand);
     connect(m_autoSaveTimer, &QTimer::timeout, this, &EditorView::autoSave);
     m_autoSaveTimer->start(m_autoSaveInterval);
 
@@ -347,8 +300,6 @@ EditorView::~EditorView()
 {
     m_autoSaveTimer->stop();
 }
-
-// ============= PUBLIC METHODS =============
 
 void EditorView::setFolder(const QString &folderPath)
 {
@@ -363,7 +314,6 @@ void EditorView::setFolder(const QString &folderPath)
 
 void EditorView::loadFile(const QString &filePath)
 {
-    // Save current if unsaved
     if (m_isUnsaved && !m_currentFile.isEmpty()) {
         saveCurrentFile();
     }
@@ -381,11 +331,8 @@ void EditorView::loadFile(const QString &filePath)
     updateStatusBar();
 }
 
-// ============= PRIVATE SLOTS =============
-
 void EditorView::onNew()
 {
-    // Save current if unsaved
     if (m_isUnsaved && !m_currentFile.isEmpty()) {
         saveCurrentFile();
     }
@@ -410,34 +357,25 @@ void EditorView::onSave()
 void EditorView::onAddClicked()
 {
     bool ok;
-    QString baseName = QInputDialog::getText(
-        this, "New Note", "Enter note name:", QLineEdit::Normal, "untitled", &ok
-    );
+    QString baseName = QInputDialog::getText(this, "New Note", "Enter note name:", QLineEdit::Normal, "untitled", &ok);
 
     if (ok && !baseName.isEmpty()) {
-        // Remove .txt if user included it
-        if (baseName.endsWith(".txt"))
-            baseName.chop(4);
+        if (baseName.endsWith(".md"))
+            baseName.chop(3);
 
-        QString filePath = m_folderPath + "/" + baseName + ".txt";
+        QString filePath = m_folderPath + "/" + baseName + ".md";
 
-        // Check if exists
         if (QFileInfo::exists(filePath)) {
-            QMessageBox::StandardButton reply = QMessageBox::question(
-                this, "File Exists",
-                "A note with this name already exists. Overwrite?",
-                QMessageBox::Yes | QMessageBox::No
-            );
+            QMessageBox::StandardButton reply = QMessageBox::question(this, "File Exists",
+                "A note with this name already exists. Overwrite?", QMessageBox::Yes | QMessageBox::No);
             if (reply != QMessageBox::Yes)
                 return;
         }
 
-        // Save current if unsaved
         if (m_isUnsaved && !m_currentFile.isEmpty()) {
             saveCurrentFile();
         }
 
-        // Create new file
         QFile file(filePath);
         if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
             return;
@@ -455,9 +393,7 @@ void EditorView::onFileSelected(QListWidgetItem *item)
 {
     if (item->text() == "(No notes yet)")
         return;
-
-    QString filePath = m_folderPath + "/" + item->text() + ".txt";
-    loadFile(filePath);
+    loadFile(m_folderPath + "/" + item->text() + ".md");
 }
 
 void EditorView::onTextChanged()
@@ -482,20 +418,105 @@ void EditorView::autoSave()
     }
 }
 
-// ============= SEARCH FUNCTIONS =============
+void EditorView::onCalcEquals()
+{
+    if (m_calcCurrent.isEmpty()) return;
+    
+    // Evaluate the expression safely
+    QString expr = m_calcCurrent;
+    expr.replace("×", "*").replace("÷", "/");
+    
+    // Simple eval using QScript (or manual parsing)
+    bool ok;
+    double result = 0;
+    
+    // Very simple parser for +, -, *, /
+    QStringList tokens;
+    QString currentNum;
+    QString lastOp = "+";
+    
+    for (int i = 0; i < expr.length(); i++) {
+        QChar c = expr[i];
+        if (c.isDigit() || c == '.') {
+            currentNum += c;
+        } else if (c == '+' || c == '-' || c == '*' || c == '/') {
+            if (!currentNum.isEmpty()) {
+                double num = currentNum.toDouble();
+                if (lastOp == "+") result += num;
+                else if (lastOp == "-") result -= num;
+                else if (lastOp == "*") result *= num;
+                else if (lastOp == "/") result /= num;
+                currentNum.clear();
+            }
+            lastOp = c;
+        }
+    }
+    
+    // Process last number
+    if (!currentNum.isEmpty()) {
+        double num = currentNum.toDouble();
+        if (lastOp == "+") result += num;
+        else if (lastOp == "-") result -= num;
+        else if (lastOp == "*") result *= num;
+        else if (lastOp == "/") result /= num;
+    }
+    
+    // Format result
+    QString resultStr = QString::number(result);
+    if (resultStr.endsWith(".0")) {
+        resultStr.chop(2);
+    }
+    
+    m_calcDisplay->setText(resultStr);
+    m_calcCurrent = resultStr;
+    
+    // Copy to clipboard and insert into editor
+    QApplication::clipboard()->setText(resultStr);
+    m_textEdit->insertPlainText(resultStr);
+}
+
+void EditorView::onCalcClear()
+{
+    m_calcCurrent.clear();
+    m_calcDisplay->setText("0");
+}
+
+void EditorView::onTerminalCommand()
+{
+    QString command = m_terminalInput->text().trimmed();
+    if (command.isEmpty()) return;
+    
+    m_terminalOutput->append("$ " + command);
+    m_terminalInput->clear();
+    
+    // Execute command
+    QProcess *process = new QProcess(this);
+    connect(process, &QProcess::readyReadStandardOutput, this, [this, process]() {
+        m_terminalOutput->append(QString::fromLocal8Bit(process->readAllStandardOutput()));
+    });
+    connect(process, &QProcess::readyReadStandardError, this, [this, process]() {
+        m_terminalOutput->append("<span style='color: #FF6B6B;'>" + QString::fromLocal8Bit(process->readAllStandardError()) + "</span>");
+    });
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus) {
+        m_terminalOutput->append("");
+    });
+    
+    if (!m_folderPath.isEmpty()) {
+        process->setWorkingDirectory(m_folderPath);
+    }
+    process->start("/bin/sh", QStringList() << "-c" << command);
+}
 
 void EditorView::onSearchToggle()
 {
     m_searchVisible = !m_searchVisible;
     m_searchBar->setVisible(m_searchVisible);
-    
     if (m_searchVisible) {
         m_searchInput->setFocus();
         m_searchInput->selectAll();
     } else {
         m_searchInput->clear();
         m_searchLabel->clear();
-        // Clear highlights
         QList<QTextEdit::ExtraSelection> highlights;
         m_textEdit->setExtraSelections(highlights);
     }
@@ -510,46 +531,32 @@ void EditorView::onSearchNext()
 {
     QTextDocument *doc = m_textEdit->document();
     QTextCursor cursor = m_textEdit->textCursor();
-    
     cursor = doc->find(m_searchInput->text(), cursor);
-    if (cursor.isNull()) {
-        // Wrap around to beginning
+    if (cursor.isNull())
         cursor = doc->find(m_searchInput->text());
-    }
-    
-    if (!cursor.isNull()) {
+    if (!cursor.isNull())
         m_textEdit->setTextCursor(cursor);
-    }
 }
 
 void EditorView::onSearchPrevious()
 {
     QTextDocument *doc = m_textEdit->document();
     QTextCursor cursor = m_textEdit->textCursor();
-    
     QTextDocument::FindFlags flags = QTextDocument::FindBackward;
     cursor = doc->find(m_searchInput->text(), cursor, flags);
-    
-    if (cursor.isNull()) {
-        // Wrap around to end
+    if (cursor.isNull())
         cursor = doc->find(m_searchInput->text(), QTextCursor(doc), flags);
-    }
-    
-    if (!cursor.isNull()) {
+    if (!cursor.isNull())
         m_textEdit->setTextCursor(cursor);
-    }
 }
 
 void EditorView::highlightAllMatches(const QString &searchText)
 {
     QList<QTextEdit::ExtraSelection> highlights;
-    
     if (!searchText.isEmpty()) {
         QTextDocument *doc = m_textEdit->document();
         QTextCursor cursor(doc);
         int matchCount = 0;
-        
-        cursor.beginEditBlock();
         while (!cursor.isNull() && !cursor.atEnd()) {
             cursor = doc->find(searchText, cursor);
             if (!cursor.isNull()) {
@@ -563,29 +570,23 @@ void EditorView::highlightAllMatches(const QString &searchText)
                 cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
             }
         }
-        cursor.endEditBlock();
-        
         m_searchLabel->setText(QString("%1 match%2").arg(matchCount).arg(matchCount == 1 ? "" : "es"));
     } else {
         m_searchLabel->setText("");
     }
-    
     m_textEdit->setExtraSelections(highlights);
 }
-
-// ============= HELPER FUNCTIONS =============
 
 void EditorView::refreshFileList()
 {
     m_fileList->clear();
     QDir dir(m_folderPath);
     QStringList filters;
-    filters << "*.txt";
+    filters << "*.md";
     QFileInfoList files = dir.entryInfoList(filters, QDir::Files | QDir::Readable, QDir::Name);
 
     for (const QFileInfo &file : files) {
-        QString name = file.baseName();
-        m_fileList->addItem(name);
+        m_fileList->addItem(file.baseName());
     }
 
     if (files.isEmpty()) {
@@ -613,25 +614,16 @@ bool EditorView::saveCurrentFile()
 
 void EditorView::updateStatusBar()
 {
-    QString fileName = m_currentFile.isEmpty() 
-        ? "Untitled" 
-        : QFileInfo(m_currentFile).baseName();
-    
+    QString fileName = m_currentFile.isEmpty() ? "Untitled" : QFileInfo(m_currentFile).baseName();
     int charCount = m_textEdit->toPlainText().length();
     QString text = m_textEdit->toPlainText();
     int wordCount = text.isEmpty() ? 0 : text.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts).size();
-    
     QString unsaved = m_isUnsaved ? " ●" : "";
     
-    m_statusBar->showMessage(
-        QString("  %1%2  |  Words: %3  |  Characters: %4  |  Line: %5  Col: %6")
-            .arg(fileName)
-            .arg(unsaved)
-            .arg(wordCount)
-            .arg(charCount)
-            .arg(m_textEdit->textCursor().blockNumber() + 1)
-            .arg(m_textEdit->textCursor().columnNumber() + 1)
-    );
+    m_statusBar->showMessage(QString("  %1%2  |  Words: %3  |  Chars: %4  |  Ln: %5  Col: %6")
+        .arg(fileName).arg(unsaved).arg(wordCount).arg(charCount)
+        .arg(m_textEdit->textCursor().blockNumber() + 1)
+        .arg(m_textEdit->textCursor().columnNumber() + 1));
 }
 
 void EditorView::updateLineColumnIndicator()
@@ -642,19 +634,14 @@ void EditorView::updateLineColumnIndicator()
 void EditorView::highlightCurrentLine()
 {
     QList<QTextEdit::ExtraSelection> extraSelections;
-    
     if (!m_textEdit->isReadOnly()) {
         QTextEdit::ExtraSelection selection;
-        
-        QColor lineColor = QColor("#2D2D30");
-        selection.format.setBackground(lineColor);
+        selection.format.setBackground(QColor("#2D2D30"));
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = m_textEdit->textCursor();
         selection.cursor.clearSelection();
-        
         extraSelections.append(selection);
     }
-    
     m_textEdit->setExtraSelections(extraSelections);
 }
 
@@ -681,40 +668,27 @@ void EditorView::keyPressEvent(QKeyEvent *event)
         return;
     }
     
-    // Ctrl+Backspace to delete entire line
-    if (event->modifiers() & Qt::ControlModifier && event->key() == Qt::Key_Backspace) {
+    // Ctrl+Backspace / Alt+Backspace / Alt+Delete / Ctrl+Delete to delete line
+    if ((event->modifiers() & (Qt::ControlModifier | Qt::AltModifier)) && 
+        (event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete)) {
         deleteCurrentLine();
         event->accept();
         return;
     }
     
-    // Ctrl+Delete to delete entire line (alternative)
-    if (event->modifiers() & Qt::ControlModifier && event->key() == Qt::Key_Delete) {
-        deleteCurrentLine();
+    // Ctrl+Ö (Ctrl+O) for terminal toggle - German keyboard
+    if (event->modifiers() & Qt::ControlModifier && (event->key() == Qt::Key_O || event->key() == Qt::Key_Odiaeresis)) {
+        bool visible = m_terminalDock->isVisible();
+        m_terminalDock->setVisible(!visible);
         event->accept();
         return;
     }
     
-    // Alt+Backspace to delete entire line
-    if (event->modifiers() & Qt::AltModifier && event->key() == Qt::Key_Backspace) {
-        deleteCurrentLine();
+    // F5 triggers math conversion
+    if (event->key() == Qt::Key_F5) {
+        convertMathInput();
         event->accept();
         return;
-    }
-    
-    // Alt+Delete to delete entire line
-    if (event->modifiers() & Qt::AltModifier && event->key() == Qt::Key_Delete) {
-        deleteCurrentLine();
-        event->accept();
-        return;
-    }
-    
-    // Space triggers math conversion
-    if (event->key() == Qt::Key_Space && !(event->modifiers() & ~Qt::ShiftModifier)) {
-        if (convertMathInput()) {
-            event->accept();
-            return;
-        }
     }
     
     QWidget::keyPressEvent(event);
@@ -723,68 +697,32 @@ void EditorView::keyPressEvent(QKeyEvent *event)
 bool EditorView::convertMathInput()
 {
     QTextCursor cursor = m_textEdit->textCursor();
-    QString text = m_textEdit->toPlainText();
+    QString fullText = m_textEdit->toPlainText();
     int cursorPos = cursor.position();
     
-    if (cursorPos == 0)
+    if (cursorPos == 0) {
         return false;
-    
-    // Find the word before cursor (word boundary to word boundary)
-    // Word boundaries: space, operators, or start of text
-    // But NOT parentheses (for root(3) support)
-    int wordStart = cursorPos;
-    int parenDepth = 0; // Track parenthesis depth
-    
-    while (wordStart > 0) {
-        wordStart--;
-        QChar c = text[wordStart];
-        
-        // Track parenthesis depth
-        if (c == ')') {
-            parenDepth++;
-        } else if (c == '(') {
-            if (parenDepth > 0) {
-                parenDepth--;
-            } else {
-                // Found opening paren of a function like "root("
-                // Include it in the word
-                continue;
-            }
-        }
-        
-        // If we're inside parentheses, continue
-        if (parenDepth > 0)
-            continue;
-            
-        // Normal word boundary
-        if (c.isSpace() || c == ',' || c == '=' || c == '+' || c == '-' || c == '*' || c == '/' || c == '^') {
-            wordStart++;
-            break;
-        }
     }
     
-    if (wordStart == cursorPos)
-        return false;
+    int wordEnd = cursorPos;
+    while (wordEnd > 0 && !fullText[wordEnd - 1].isSpace()) {
+        wordEnd--;
+    }
     
-    QString word = text.mid(wordStart, cursorPos - wordStart);
-    if (word.isEmpty())
-        return false;
+    QString word = fullText.mid(wordEnd, cursorPos - wordEnd);
     
-    // Try to convert
+    if (word.isEmpty()) {
+        return false;
+    }
+    
     int charsToDelete = 0;
     QString converted = MathConverter::convert(word, charsToDelete);
     
     if (!converted.isEmpty() && charsToDelete > 0) {
-        // Delete the word and replace with converted
-        QTextCursor deleteCursor(m_textEdit->document());
-        deleteCursor.setPosition(wordStart);
-        deleteCursor.setPosition(cursorPos, QTextCursor::KeepAnchor);
-        deleteCursor.insertText(converted);
-        
-        // Move cursor to end of inserted text
-        QTextCursor newCursor(m_textEdit->document());
-        newCursor.setPosition(wordStart + converted.length());
-        m_textEdit->setTextCursor(newCursor);
+        QTextCursor delCursor(m_textEdit->document());
+        delCursor.setPosition(wordEnd);
+        delCursor.setPosition(cursorPos, QTextCursor::KeepAnchor);
+        delCursor.insertText(converted);
         
         onTextChanged();
         return true;
@@ -796,58 +734,43 @@ bool EditorView::convertMathInput()
 void EditorView::deleteCurrentLine()
 {
     QTextCursor cursor = m_textEdit->textCursor();
+    QString fullText = m_textEdit->toPlainText();
+    int cursorPos = cursor.position();
     
-    // Select the entire line
-    cursor.select(QTextCursor::LineUnderCursor);
-    
-    // Also select the newline character at the end (unless at end of document)
-    cursor.movePosition(QTextCursor::EndOfLine);
-    cursor.insertText("");
-    
-    // Re-select and delete
-    cursor.select(QTextCursor::LineUnderCursor);
-    
-    // If there's a newline after, include it
-    cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
-    QString selected = cursor.selectedText();
-    if (selected.isEmpty() || selected == "\n") {
-        // Already at end, just delete the line
-        cursor.select(QTextCursor::LineUnderCursor);
-    } else if (!selected.contains(QChar(QChar::CarriageReturn)) && !selected.contains('\n')) {
-        // No newline found, extend selection
-        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+    int lineStart = cursorPos;
+    while (lineStart > 0 && fullText[lineStart - 1] != '\n') {
+        lineStart--;
     }
     
-    // Remove selection but don't delete yet - instead rebuild
-    QTextCursor tempCursor = m_textEdit->textCursor();
-    tempCursor.select(QTextCursor::LineUnderCursor);
+    int lineEnd = cursorPos;
+    while (lineEnd < fullText.length() && fullText[lineEnd] != '\n') {
+        lineEnd++;
+    }
     
-    // Get text before and after the line
-    QTextCursor startCursor = tempCursor;
-    startCursor.movePosition(QTextCursor::StartOfLine);
-    startCursor.setPosition(tempCursor.position(), QTextCursor::KeepAnchor);
+    if (lineEnd < fullText.length() && fullText[lineEnd] == '\n') {
+        lineEnd++;
+    }
     
-    // Get content before this line
-    QTextCursor beforeCursor(startCursor);
-    beforeCursor.setPosition(0);
-    beforeCursor.setPosition(startCursor.position(), QTextCursor::KeepAnchor);
-    QString beforeText = beforeCursor.selectedText();
+    QString before = fullText.left(lineStart);
+    QString after = fullText.mid(lineEnd);
     
-    // Get content after this line (including next line's content)
-    QTextCursor afterCursor(tempCursor);
-    afterCursor.movePosition(QTextCursor::EndOfLine);
-    afterCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
-    afterCursor.setPosition(tempCursor.position(), QTextCursor::MoveAnchor);
-    afterCursor.setPosition(m_textEdit->document()->characterCount(), QTextCursor::KeepAnchor);
-    QString afterText = afterCursor.selectedText();
+    m_textEdit->setPlainText(before + after);
     
-    // Replace entire content
-    m_textEdit->setPlainText(beforeText + afterText);
-    
-    // Position cursor at end of what was before
+    int newPos = qMin(lineStart, before.length());
     QTextCursor newCursor = m_textEdit->textCursor();
-    newCursor.setPosition(beforeText.length());
+    newCursor.setPosition(newPos);
     m_textEdit->setTextCursor(newCursor);
     
     onTextChanged();
+}
+
+void EditorView::openSystemTerminal()
+{
+    QProcess *process = new QProcess(this);
+    
+    if (!m_folderPath.isEmpty()) {
+        process->setWorkingDirectory(m_folderPath);
+    }
+    
+    process->start("ghostty");
 }

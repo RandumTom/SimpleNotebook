@@ -250,52 +250,34 @@ QString MathConverter::convert(const QString &input, int &charsToDelete)
         return it.value();
     }
     
-    // Handle root(n) - nth root
-    // Examples: root(3) -> ³√, root(3,64) -> ³√64, root(16) -> √16
-    if (input.startsWith("root(")) {
-        int closeParen = input.lastIndexOf(')');
-        if (closeParen > 5) {
-            QString inner = input.mid(5, closeParen - 5); // Content between parentheses
-            QString after = input.mid(closeParen + 1); // Content after closing paren
+    // Handle (x)root(y) format = y-th root of x
+    // Example: (8)root(9) = ⁹√8
+    if (input.contains(")root(")) {
+        int rootPos = input.indexOf(")root(");
+        QString x = input.left(rootPos); // Content before )root(
+        QString afterRoot = input.mid(rootPos + 5); // After )root(
+        int closeParen = afterRoot.lastIndexOf(')');
+        if (closeParen > 0) {
+            QString y = afterRoot.left(closeParen);
+            QString after = afterRoot.mid(closeParen + 1);
             
-            // Check for n,x format: root(3,64)
-            if (inner.contains(',')) {
-                QStringList parts = inner.split(',');
-                if (parts.size() == 2) {
-                    QString n = parts[0].trimmed();
-                    QString x = parts[1].trimmed();
-                    QString superscript = superscriptDigit(n);
-                    if (!superscript.isEmpty()) {
-                        charsToDelete = input.length();
-                        return superscript + "√" + x + after;
-                    }
-                }
-            }
-            
-            // Just root(n) format
-            QString n = inner.trimmed();
-            if (!n.isEmpty()) {
-                if (n == "2") {
-                    // Square root
-                    charsToDelete = input.length();
-                    return "√" + after;
-                }
-                QString superscript = superscriptDigit(n);
-                if (!superscript.isEmpty()) {
-                    charsToDelete = input.length();
-                    return superscript + "√" + after;
-                }
+            QString superscript = superscriptDigit(y.trimmed());
+            if (!superscript.isEmpty()) {
+                charsToDelete = input.length();
+                return superscript + "√" + x + after;
             }
         }
     }
     
-    // Handle nroot format: nroot(3,64) = cube root of 64
-    if (input.startsWith("nroot(")) {
+    // Handle root(n) format - square root of n (or n-th root if specified)
+    // Examples: root(9) -> √9, root(3,64) -> ³√64
+    if (input.startsWith("root(")) {
         int closeParen = input.lastIndexOf(')');
-        if (closeParen > 6) {
-            QString inner = input.mid(6, closeParen - 6);
+        if (closeParen > 5) {
+            QString inner = input.mid(5, closeParen - 5);
             QString after = input.mid(closeParen + 1);
             
+            // Check for n,x format: root(3,64) = cube root of 64
             if (inner.contains(',')) {
                 QStringList parts = inner.split(',');
                 if (parts.size() == 2) {
@@ -307,6 +289,13 @@ QString MathConverter::convert(const QString &input, int &charsToDelete)
                         return superscript + "√" + x + after;
                     }
                 }
+            }
+            
+            // Just root(n) = square root of n
+            QString n = inner.trimmed();
+            if (!n.isEmpty()) {
+                charsToDelete = input.length();
+                return "√" + n + after;
             }
         }
     }
