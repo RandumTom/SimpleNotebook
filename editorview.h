@@ -8,6 +8,7 @@
 #include <QDockWidget>
 #include <QPlainTextEdit>
 #include <QLineEdit>
+#include <QClipboard>
 
 class QPushButton;
 class QLabel;
@@ -41,6 +42,7 @@ signals:
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
     void onNew();
@@ -76,6 +78,7 @@ private:
     QString m_folderPath;
     QString m_currentFile;
     bool m_isUnsaved = false;
+    QString m_cutItem;
     QTimer *m_autoSaveTimer;
     int m_autoSaveInterval = 30000;
 

@@ -76,6 +76,70 @@ EditorView::EditorView(QWidget *parent)
 
     m_fileList = new QListWidget(m_sidebar);
     m_fileList->setFont(QFont("Segoe UI", 11));
+    m_fileList->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_fileList->setContextMenuPolicy(Qt::CustomContextMenu);
+    m_fileList->installEventFilter(this);
+    connect(m_fileList, &QListWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
+        QListWidgetItem *item = m_fileList->itemAt(pos);
+        if (!item) return;
+        
+        QMenu menu(m_fileList);
+        menu.addAction("Copy", this, [this, item]() {
+            QClipboard *clipboard = QApplication::clipboard();
+            clipboard->setText(item->text());
+        });
+        menu.addAction("Cut", this, [this, item]() {
+            QClipboard *clipboard = QApplication::clipboard();
+            clipboard->setText(item->text());
+            // Mark for deletion
+            m_cutItem = item->text();
+        });
+        menu.addAction("Paste", this, [this]() {
+            if (!m_cutItem.isEmpty()) {
+                // Create new file with copied name
+                QString newPath = m_folderPath + "/" + m_cutItem + ".md";
+                QString baseName = m_cutItem;
+                int counter = 1;
+                while (QFileInfo::exists(newPath)) {
+                    baseName = QString("%1 (%2)").arg(m_cutItem).arg(counter++);
+                    newPath = m_folderPath + "/" + baseName + ".md";
+                }
+                QFile file(newPath);
+                if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                    file.close();
+                    refreshFileList();
+                    m_cutItem.clear();
+                }
+                file.close();
+                refreshFileList();
+                m_cutItem.clear();
+            }
+        });
+        menu.addSeparator();
+        menu.addAction("Rename", this, [this, item]() {
+            bool ok;
+            QString newName = QInputDialog::getText(this, "Rename Note", "Enter new name:", QLineEdit::Normal, item->text(), &ok);
+            if (ok && !newName.isEmpty() && newName != item->text()) {
+                if (newName.endsWith(".md")) newName.chop(3);
+                QString oldPath = m_folderPath + "/" + item->text() + ".md";
+                QString newPath = m_folderPath + "/" + newName + ".md";
+                if (QFile::rename(oldPath, newPath)) {
+                    refreshFileList();
+                }
+            }
+        });
+        menu.addAction("Delete", this, [this, item]() {
+            QString filePath = m_folderPath + "/" + item->text() + ".md";
+            QMessageBox::StandardButton reply = QMessageBox::question(this, "Delete Note",
+                "Delete '" + item->text() + "'?", QMessageBox::Yes | QMessageBox::No);
+            if (reply == QMessageBox::Yes) {
+                if (QFile::remove(filePath)) {
+                    refreshFileList();
+                }
+            }
+        });
+        menu.exec(QCursor::pos());
+    });
     sidebarLayout->addWidget(m_fileList, 1);
 
     QPushButton *addBtn = new QPushButton("  +  New Note", m_sidebar);
@@ -734,4 +798,77 @@ void EditorView::spawnAgent(const QString &agent)
         process->setWorkingDirectory(m_folderPath);
     }
     process->start(command, args);
+}
+
+bool EditorView::eventFilter(QObject *obj, QEvent *event)
+{
+    if (event->type() == QEvent::KeyPress && obj == m_fileList) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+        QListWidgetItem *item = m_fileList->currentItem();
+        
+        if (!item) return QWidget::eventFilter(obj, event);
+        
+        if (keyEvent->modifiers() & Qt::ControlModifier) {
+            if (keyEvent->key() == Qt::Key_C) { // Copy
+                QClipboard *clipboard = QApplication::clipboard();
+                clipboard->setText(item->text());
+                return true;
+            }
+            if (keyEvent->key() == Qt::Key_X) { // Cut
+                QClipboard *clipboard = QApplication::clipboard();
+                clipboard->setText(item->text());
+                m_cutItem = item->text();
+                return true;
+            }
+            if (keyEvent->key() == Qt::Key_V) { // Paste
+                if (!m_cutItem.isEmpty()) {
+                    QString newPath = m_folderPath + "/" + m_cutItem + ".md";
+                    QString baseName = m_cutItem;
+                    int counter = 1;
+                    while (QFileInfo::exists(newPath)) {
+                        baseName = QString("%1 (%2)").arg(m_cutItem).arg(counter++);
+                        newPath = m_folderPath + "/" + baseName + ".md";
+                    }
+                    QFile file(newPath);
+                    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                        file.close();
+                        refreshFileList();
+                        m_cutItem.clear();
+                    }
+                    file.close();
+                    refreshFileList();
+                    m_cutItem.clear();
+                }
+                return true;
+            }
+        }
+        
+        if (keyEvent->key() == Qt::Key_Delete) { // Delete
+            QString filePath = m_folderPath + "/" + item->text() + ".md";
+            QMessageBox::StandardButton reply = QMessageBox::question(this, "Delete Note",
+                "Delete '" + item->text() + "'?", QMessageBox::Yes | QMessageBox::No);
+            if (reply == QMessageBox::Yes) {
+                if (QFile::remove(filePath)) {
+                    refreshFileList();
+                }
+            }
+            return true;
+        }
+        
+        if (keyEvent->key() == Qt::Key_F2) { // Rename
+            bool ok;
+            QString newName = QInputDialog::getText(this, "Rename Note", "Enter new name:", QLineEdit::Normal, item->text(), &ok);
+            if (ok && !newName.isEmpty() && newName != item->text()) {
+                if (newName.endsWith(".md")) newName.chop(3);
+                QString oldPath = m_folderPath + "/" + item->text() + ".md";
+                QString newPath = m_folderPath + "/" + newName + ".md";
+                if (QFile::rename(oldPath, newPath)) {
+                    refreshFileList();
+                }
+            }
+            return true;
+        }
+    }
+    
+    return QWidget::eventFilter(obj, event);
 }
