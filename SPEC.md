@@ -1,110 +1,139 @@
-# Simple Notebook App - Specification
+# SimpleNotebook - Specification
 
 ## 1. Project Overview
 - **Project name**: SimpleNotebook
 - **Type**: Desktop application (Qt6)
-- **Core functionality**: A minimal text editor for writing and saving notes with folder-based organization
-- **Target users**: Anyone needing a simple text editor organized by folders
+- **Core functionality**: A dark-mode note-taking app for students with folder-based organization
+- **Target users**: Students needing organized notes for school subjects
 
 ## 2. UI/UX Specification
 
-### Layout Structure
-- **Start Page** (initial view):
-  - Centered welcome message
-  - Grid of school subject buttons (German, Mathematics, English, Biology, Chemistry, Physics, History, Geography, Music, Art, Physical Education, Computer Science)
-  - "Choose Custom Folder" button for custom locations
-  - Notes are saved to ~/Documents/SchoolNotes/[Subject]/
-  
-- **Editor View** (after selecting folder):
-  - Sidebar (left): File list from selected folder
-  - Main area (right): Text editor
-  - Toolbar at top
-  - Status bar at bottom
+### Visual Design - Dark Mode
 
-### Visual Design
-- **Color palette**:
-  - Background: System default (native look)
-  - Sidebar background: #F5F5F5 (light gray)
-  - Toolbar background: System default toolbar color
-  - Status bar: System default status bar color
-  - Selected item: System highlight color
-- **Typography**: System default monospace or sans-serif, 12pt for text area
-- **Window**: 900x650 default size, resizable
+#### Color Palette
+| Element | Color | Hex |
+|---------|-------|-----|
+| Background | Dark charcoal | #1E1E1E |
+| Sidebar | Slightly lighter | #252526 |
+| Text (primary) | Light gray | #D4D4D4 |
+| Text (secondary) | Medium gray | #808080 |
+| Accent/Primary | Purple | #7C3AED |
+| Accent Hover | Lighter purple | #8B5CF6 |
+| Success (New) | Green | #10B981 |
+| Warning | Orange | #F59E0B |
+| Error | Red | #EF4444 |
+| Selected item | Purple tint | #3730A3 |
+| Border | Subtle dark | #3E3E42 |
+| Input background | Darker | #1E1E1E |
+| Scrollbar | Medium gray | #424242 |
+| Current line highlight | Subtle | #2D2D30 |
+| Search highlight | Yellow tint | #4B4B00 |
+
+#### Typography
+- **Font**: Consolas / JetBrains Mono / system monospace
+- **Editor font size**: 14px
+- **UI font size**: 12-13px
+
+### Layout Structure
+
+#### Start Page (Dark Mode)
+- Centered welcome with dark background (#1E1E1E)
+- Subject buttons in grid (3 columns)
+- Hover effects with white/purple accent
+- Smooth button animations
+- Custom folder option at bottom
+
+#### Editor View (Dark Mode)
+- **Sidebar (left, 220px)**:
+  - Back button
+  - Current folder path
+  - File list with hover highlighting
+  - "New Note" button at bottom
+  
+- **Main area (right)**:
+  - Toolbar with New, Save, Search buttons
+  - Collapsible search bar
+  - Text editor with current line highlight
+  - Status bar at bottom
 
 ### Components
 
-#### Start Page
-1. **Welcome label**: "Welcome to SimpleNotebook"
-2. **Select Folder button**: Large button to open folder dialog
-3. **Recent Folders list**: Shows last 5 used folders (optional for MVP)
+#### Start Page Components
+1. Welcome label (large, centered)
+2. Subtitle (muted color)
+3. Subject button grid (3x4)
+4. Custom folder button
 
-#### Sidebar (Editor View)
-1. **Back button**: Return to start page
-2. **Current folder label**: Shows folder path
-3. **File list**: Scrollable list of .txt files in folder
-4. **Add button**: Create new note in folder
+#### Editor Components
+1. **Toolbar**:
+   - New | Save | Search toggle
+   
+2. **Search Bar** (collapsible):
+   - Search icon
+   - Text input
+   - Match count display
+   - Previous/Next buttons
+   - Close button
 
-#### Toolbar
-- New button ("New")
-- Save button ("Save")
+3. **Text Editor**:
+   - Current line highlight
+   - Scrollable
+   - Word wrap enabled
+   - Custom scrollbars
 
-#### Text Area
-- Multi-line text edit (QPlainTextEdit)
-- Scrollable
-- Monospace font
+4. **Status Bar**:
+   - Left: Filename (with ● unsaved indicator)
+   - Center: Line and column number
+   - Right: Word count | Character count
 
-#### Status Bar
-- Left: Current file name
-- Right: Character count
+### Editor Features
 
-### Behaviors
-- **Start Page → Select Folder**: Opens native folder dialog, transitions to Editor View
-- **Back**: Returns to Start Page
-- **New**: Creates new file in current folder
-- **Save**: Saves current file
-- **Click file in sidebar**: Loads that file into editor
+#### Core Features
+1. **✅ Dark Mode UI** - Full dark theme throughout
+2. **✅ Current Line Highlight** - Subtle highlight on active line
+3. **✅ Search/Replace** - Ctrl+F to search, highlight all matches, navigate with arrows
+4. **✅ Word Count** - Real-time word and character count
+5. **✅ Line/Column Indicator** - Shows cursor position
+6. **✅ Auto-save** - Auto-save every 30 seconds when changes detected
+7. **✅ Keyboard Shortcuts**:
+   - Ctrl+N: New note
+   - Ctrl+S: Save
+   - Ctrl+F: Find/Search
+
+#### School Subjects
+| Subject | Icon | Color |
+|---------|------|-------|
+| German | 🇩🇪 | #7C3AED |
+| Mathematics | 📐 | #3B82F6 |
+| English | 🇬🇧 | #10B981 |
+| Biology | 🧬 | #22C55E |
+| Chemistry | ⚗️ | #A855F7 |
+| Physics | ⚡ | #6366F1 |
+| History | 📜 | #F59E0B |
+| Geography | 🌍 | #14B8A6 |
+| Music | 🎵 | #EC4899 |
+| Art | 🎨 | #F97316 |
+| Physical Education | ⚽ | #84CC16 |
+| Computer Science | 💻 | #64748B |
 
 ## 3. Functional Specification
 
-### Core Features
-1. Start page with folder selection
-2. List .txt files from selected folder in sidebar
-3. Create new notes in selected folder
-4. Open existing .txt files from folder
-5. Save notes to folder
-6. Return to start page to select different folder
-
 ### Classes
-- `MainWindow` (mainwindow.h/cpp): Main application window
-  - Manages stacked widget (start page / editor)
-  - Handles navigation between views
-  
-- `StartPage` (startpage.h/cpp): Start page widget
-  - Folder selection button
-  - Recent folders list (optional)
-  
-- `EditorView` (editorview.h/cpp): Editor widget
-  - Sidebar with file list
-  - Text editor
-  - Toolbar and status bar
+- `MainWindow`: Container with stacked widget
+- `StartPage`: Dark-themed subject selection
+- `EditorView`: Dark-themed editor with sidebar, search, auto-save
 
-### Data Flow
-- Folder selection: QFileDialog::getExistingDirectory
-- File operations: QFile, QTextStream
-- File list: QDir, QDirIterator for .txt files
-
-### Edge Cases
-- Empty folder: Show "No notes yet" message
-- File deleted externally: Refresh file list
-- Multiple instances editing same file: Simple approach - last save wins
+### File Operations
+- Save location: `~/Documents/SchoolNotes/[Subject]/[Note].txt`
+- Encoding: UTF-8
+- Auto-save interval: 30 seconds
 
 ## 4. Acceptance Criteria
-- [ ] App launches with start page
-- [ ] "Select Folder" opens native folder dialog
-- [ ] After selecting folder, shows file list in sidebar
-- [ ] Clicking file loads it in editor
-- [ ] "New" creates new file in current folder
-- [ ] "Save" saves to current folder
-- [ ] "Back" returns to start page
-- [ ] Status bar shows filename and character count
-- [ ] Window is resizable
+- [x] Dark mode UI throughout
+- [x] Current line highlighted
+- [x] Search functionality (Ctrl+F) with match count
+- [x] Word/character/line count in status bar
+- [x] Auto-save every 30 seconds
+- [x] Keyboard shortcuts (Ctrl+N, Ctrl+S, Ctrl+F)
+- [x] German subject included
+- [x] Push to GitHub

@@ -12,40 +12,65 @@
 StartPage::StartPage(QWidget *parent)
     : QWidget(parent)
 {
+    // Dark mode background
+    setStyleSheet(
+        "QWidget {"
+        "   background-color: #1E1E1E;"
+        "}"
+        "QLabel {"
+        "   color: #D4D4D4;"
+        "}"
+    );
+
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setAlignment(Qt::AlignCenter);
+    mainLayout->setContentsMargins(40, 40, 40, 40);
 
-    // Welcome label
-    QLabel *welcomeLabel = new QLabel("📚 Welcome to SimpleNotebook", this);
-    welcomeLabel->setStyleSheet("font-size: 28px; font-weight: bold; margin-bottom: 10px;");
+    // Welcome label with gradient effect via shadow
+    QLabel *welcomeLabel = new QLabel("📚 SimpleNotebook", this);
+    welcomeLabel->setStyleSheet(
+        "font-size: 36px; "
+        "font-weight: bold; "
+        "color: #D4D4D4; "
+        "margin-bottom: 5px;"
+    );
     welcomeLabel->setAlignment(Qt::AlignCenter);
 
     // Subtitle
-    QLabel *subtitleLabel = new QLabel("Your personal school notes organizer", this);
-    subtitleLabel->setStyleSheet("font-size: 14px; color: #666; margin-bottom: 30px;");
+    QLabel *subtitleLabel = new QLabel("Your dark-themed school notes organizer", this);
+    subtitleLabel->setStyleSheet(
+        "font-size: 14px; "
+        "color: #808080; "
+        "margin-bottom: 40px;"
+    );
     subtitleLabel->setAlignment(Qt::AlignCenter);
 
     // School subjects group
     QGroupBox *subjectsGroup = new QGroupBox("Select a Subject", this);
     subjectsGroup->setStyleSheet(
         "QGroupBox {"
-        "   font-size: 14px; font-weight: bold;"
-        "   border: 2px solid #4A90D9;"
-        "   border-radius: 10px;"
-        "   margin-top: 10px;"
-        "   padding-top: 10px;"
+        "   font-size: 14px; "
+        "   font-weight: bold;"
+        "   color: #D4D4D4;"
+        "   border: 2px solid #3E3E42;"
+        "   border-radius: 12px;"
+        "   margin-top: 15px;"
+        "   padding: 20px;"
+        "   background-color: #252526;"
         "}"
         "QGroupBox::title {"
         "   subcontrol-origin: margin;"
         "   subcontrol-position: top center;"
-        "   padding: 0 10px;"
+        "   padding: 0 15px;"
+        "   background-color: #252526;"
         "}"
     );
 
     QGridLayout *subjectsLayout = new QGridLayout(subjectsGroup);
-    subjectsLayout->setSpacing(10);
+    subjectsLayout->setSpacing(15);
+    subjectsLayout->setContentsMargins(20, 20, 20, 20);
 
-    // Define school subjects with icons and colors
+    // Define school subjects with icons, colors
     struct Subject {
         QString name;
         QString icon;
@@ -53,35 +78,40 @@ StartPage::StartPage(QWidget *parent)
     };
 
     QList<Subject> subjects = {
-        {"German", "🇩🇪", "#4A90D9"},      // Deutsch
-        {"Mathematics", "📐", "#E74C3C"},   // Mathe
-        {"English", "🇬🇧", "#27AE60"},      // Englisch
-        {"Biology", "🧬", "#2ECC71"},       // Biologie
-        {"Chemistry", "⚗️", "#9B59B6"},    // Chemie
-        {"Physics", "⚡", "#3498DB"},       // Physik
-        {"History", "📜", "#D35400"},      // Geschichte
-        {"Geography", "🌍", "#1ABC9C"},    // Geografie
-        {"Music", "🎵", "#E91E63"},         // Musik
-        {"Art", "🎨", "#FF5722"},          // Kunst
-        {"Physical Education", "⚽", "#4CAF50"}, // Sport
-        {"Computer Science", "💻", "#607D8B"},  // Informatik
+        {"German", "🇩🇪", "#7C3AED"},         // Purple
+        {"Mathematics", "📐", "#3B82F6"},     // Blue
+        {"English", "🇬🇧", "#10B981"},        // Green
+        {"Biology", "🧬", "#22C55E"},         // Lime
+        {"Chemistry", "⚗️", "#A855F7"},       // Violet
+        {"Physics", "⚡", "#6366F1"},          // Indigo
+        {"History", "📜", "#F59E0B"},         // Amber
+        {"Geography", "🌍", "#14B8A6"},       // Teal
+        {"Music", "🎵", "#EC4899"},            // Pink
+        {"Art", "🎨", "#F97316"},              // Orange
+        {"Physical Education", "⚽", "#84CC16"}, // Lime
+        {"Computer Science", "💻", "#64748B"}, // Slate
     };
 
     int row = 0, col = 0;
     for (const Subject &subject : subjects) {
-        QPushButton *btn = new QPushButton(QString("%1 %2").arg(subject.icon).arg(subject.name), this);
-        btn->setMinimumSize(150, 50);
+        QPushButton *btn = new QPushButton(QString("  %1 %2").arg(subject.icon).arg(subject.name), this);
+        btn->setMinimumSize(160, 55);
+        btn->setCursor(Qt::PointingHandCursor);
         btn->setStyleSheet(QString(
             "QPushButton {"
             "   font-size: 14px;"
+            "   font-weight: 500;"
             "   background-color: %1;"
             "   color: white;"
             "   border: none;"
-            "   border-radius: 8px;"
-            "   padding: 10px;"
+            "   border-radius: 10px;"
+            "   padding: 12px 16px;"
+            "   text-align: left;"
             "}"
             "QPushButton:hover {"
-            "   background-color: rgba(0,0,0,0.2);"
+            "   background-color: #FFFFFF;"
+            "   color: #1E1E1E;"
+            "   padding-left: 20px;"
             "}"
         ).arg(subject.color));
 
@@ -101,26 +131,33 @@ StartPage::StartPage(QWidget *parent)
     mainLayout->addWidget(subjectsGroup);
 
     // Custom folder button
-    QPushButton *customBtn = new QPushButton("📁 Choose Custom Folder", this);
-    customBtn->setMinimumWidth(200);
-    customBtn->setMinimumHeight(40);
+    QPushButton *customBtn = new QPushButton("  📁  Choose Custom Folder", this);
+    customBtn->setMinimumWidth(220);
+    customBtn->setMinimumHeight(45);
+    customBtn->setCursor(Qt::PointingHandCursor);
     customBtn->setStyleSheet(
         "QPushButton {"
         "   font-size: 14px;"
-        "   background-color: #95A5A6;"
-        "   color: white;"
-        "   border: none;"
-        "   border-radius: 8px;"
-        "   padding: 8px 16px;"
-        "   margin-top: 20px;"
+        "   background-color: transparent;"
+        "   color: #808080;"
+        "   border: 2px solid #3E3E42;"
+        "   border-radius: 10px;"
+        "   padding: 10px 20px;"
+        "   margin-top: 30px;"
         "}"
         "QPushButton:hover {"
-        "   background-color: #7F8C8D;"
+        "   background-color: #3E3E42;"
+        "   color: #D4D4D4;"
+        "   border-color: #7C3AED;"
         "}"
     );
 
     m_folderLabel = new QLabel(this);
-    m_folderLabel->setStyleSheet("font-size: 12px; color: #888; margin-top: 10px;");
+    m_folderLabel->setStyleSheet(
+        "font-size: 12px; "
+        "color: #606060; "
+        "margin-top: 15px;"
+    );
     m_folderLabel->setAlignment(Qt::AlignCenter);
     m_folderLabel->setWordWrap(true);
 
@@ -151,7 +188,7 @@ void StartPage::onSubjectClicked()
         return;
     }
 
-    m_folderLabel->setText(documentsPath);
+    m_folderLabel->setText("📂 " + documentsPath);
     emit folderSelected(documentsPath);
 }
 
@@ -165,7 +202,7 @@ void StartPage::onSelectFolder()
     );
 
     if (!folderPath.isEmpty()) {
-        m_folderLabel->setText(folderPath);
+        m_folderLabel->setText("📂 " + folderPath);
         emit folderSelected(folderPath);
     }
 }
