@@ -55,9 +55,7 @@ private slots:
     void onSearchPrevious();
     void highlightAllMatches(const QString &searchText);
     
-    // Calculator
-    void onCalcEquals();
-    void onCalcClear();
+    // Inline calculator
 
 private:
     void refreshFileList();
@@ -96,11 +94,6 @@ private:
     // Terminal
     QDockWidget *m_terminalDock;
     QTermWidget *m_terminal;
-    
-    // Calculator
-    QDockWidget *m_calcDock;
-    QLineEdit *m_calcDisplay;
-    QString m_calcCurrent;
 };
 
 #endif // EDITORVIEW_H

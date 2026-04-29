@@ -110,9 +110,6 @@ EditorView::EditorView(QWidget *parent)
     terminalAct->setCheckable(true);
     terminalAct->setShortcut(Qt::CTRL | Qt::Key_O);
 
-    QAction *calcAct = new QAction("Calculator", this);
-    calcAct->setCheckable(true);
-
     // AI Agents menu button
     QWidgetAction *agentsBtn = new QWidgetAction(m_toolbar);
     QPushButton *agentsMenuBtn = new QPushButton("🤖 Agents", m_toolbar);
@@ -130,7 +127,6 @@ EditorView::EditorView(QWidget *parent)
     m_toolbar->addAction(convertAct);
     m_toolbar->addAction(searchAct);
     m_toolbar->addSeparator();
-    m_toolbar->addAction(calcAct);
     m_toolbar->addAction(terminalAct);
     m_toolbar->addAction(agentsBtn);
 
@@ -198,8 +194,8 @@ EditorView::EditorView(QWidget *parent)
     // Create real terminal widget
     m_terminal = new QTermWidget(m_terminalDock);
     
-    // Set terminal color scheme to dark
-    m_terminal->setColorScheme("Dark");
+    // Set terminal color scheme to dark (Breeze Dark or similar)
+    m_terminal->setColorScheme("Breeze Dark");
     
     // Set initial working directory
     if (!m_folderPath.isEmpty()) {
@@ -212,70 +208,6 @@ EditorView::EditorView(QWidget *parent)
     m_terminalDock->setWidget(m_terminal);
     m_terminalDock->hide();
 
-    // Calculator Dock (hidden by default)
-    m_calcDock = new QDockWidget("Calculator", this);
-    m_calcDock->setAllowedAreas(Qt::BottomDockWidgetArea);
-    m_calcDock->setMaximumHeight(250);
-    m_calcDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable);
-
-    QWidget *calcWidget = new QWidget(m_calcDock);
-    QVBoxLayout *calcLayout = new QVBoxLayout(calcWidget);
-    calcLayout->setContentsMargins(10, 10, 10, 10);
-
-    m_calcDisplay = new QLineEdit(calcWidget);
-    m_calcDisplay->setFont(QFont("Consolas", 18));
-    m_calcDisplay->setStyleSheet("background-color: #1A1A1A; color: #00FF00; border: 2px solid #333; border-radius: 5px; padding: 10px; text-align: right;");
-    m_calcDisplay->setReadOnly(true);
-    m_calcDisplay->setPlaceholderText("0");
-    calcLayout->addWidget(m_calcDisplay);
-
-    QGridLayout *calcButtons = new QGridLayout();
-    QStringList buttons = {"7", "8", "9", "/", "4", "5", "6", "*", "1", "2", "3", "-", "0", ".", "=", "+"};
-    QStringList styles = {
-        "QPushButton { background-color: #333; color: white; border: none; border-radius: 5px; padding: 15px; font-size: 16px; } QPushButton:hover { background-color: #444; }",
-        "QPushButton { background-color: #7C3AED; color: white; border: none; border-radius: 5px; padding: 15px; font-size: 16px; } QPushButton:hover { background-color: #8B5CF6; }",
-        "QPushButton { background-color: #EF4444; color: white; border: none; border-radius: 5px; padding: 15px; font-size: 16px; } QPushButton:hover { background-color: #DC2626; }"
-    };
-
-    for (int i = 0; i < buttons.size(); i++) {
-        QPushButton *btn = new QPushButton(buttons[i], calcWidget);
-        btn->setFont(QFont("Consolas", 16));
-        
-        if (buttons[i] == "=") {
-            btn->setStyleSheet(styles[1]);
-        } else if (buttons[i] == "C") {
-            btn->setStyleSheet(styles[2]);
-        } else if (buttons[i] == "/" || buttons[i] == "*" || buttons[i] == "-" || buttons[i] == "+") {
-            btn->setStyleSheet("QPushButton { background-color: #4A90D9; color: white; border: none; border-radius: 5px; padding: 15px; font-size: 16px; } QPushButton:hover { background-color: #5BA0E9; }");
-        } else {
-            btn->setStyleSheet(styles[0]);
-        }
-        
-        connect(btn, &QPushButton::clicked, this, [this, btn]() {
-            QString text = btn->text();
-            if (text == "=") {
-                onCalcEquals();
-            } else if (text == "C") {
-                onCalcClear();
-            } else {
-                m_calcCurrent += text;
-                m_calcDisplay->setText(m_calcCurrent);
-            }
-        });
-        
-        int row = i / 4;
-        int col = i % 4;
-        if (buttons[i] == "=") {
-            calcButtons->addWidget(btn, row, 0, 1, 4);
-        } else {
-            calcButtons->addWidget(btn, row, col);
-        }
-    }
-    calcLayout->addLayout(calcButtons);
-
-    m_calcDock->setWidget(calcWidget);
-    m_calcDock->hide();
-
     // CONNECTIONS
     connect(backBtn, &QPushButton::clicked, this, &EditorView::backRequested);
     connect(addBtn, &QPushButton::clicked, this, &EditorView::onAddClicked);
@@ -286,9 +218,6 @@ EditorView::EditorView(QWidget *parent)
     connect(searchAct, &QAction::triggered, this, &EditorView::onSearchToggle);
     connect(terminalAct, &QAction::toggled, [this](bool checked) {
         m_terminalDock->setVisible(checked);
-    });
-    connect(calcAct, &QAction::toggled, [this](bool checked) {
-        m_calcDock->setVisible(checked);
     });
     connect(agentsMenu->menuAction(), &QAction::triggered, this, &EditorView::openSystemTerminal);
     connect(m_textEdit, &QPlainTextEdit::textChanged, this, &EditorView::onTextChanged);
@@ -423,69 +352,6 @@ void EditorView::autoSave()
         saveCurrentFile();
         m_statusBar->showMessage("✓ Auto-saved", 1500);
     }
-}
-
-void EditorView::onCalcEquals()
-{
-    if (m_calcCurrent.isEmpty()) return;
-    
-    // Evaluate the expression safely
-    QString expr = m_calcCurrent;
-    expr.replace("×", "*").replace("÷", "/");
-    
-    // Simple eval using QScript (or manual parsing)
-    bool ok;
-    double result = 0;
-    
-    // Very simple parser for +, -, *, /
-    QStringList tokens;
-    QString currentNum;
-    QString lastOp = "+";
-    
-    for (int i = 0; i < expr.length(); i++) {
-        QChar c = expr[i];
-        if (c.isDigit() || c == '.') {
-            currentNum += c;
-        } else if (c == '+' || c == '-' || c == '*' || c == '/') {
-            if (!currentNum.isEmpty()) {
-                double num = currentNum.toDouble();
-                if (lastOp == "+") result += num;
-                else if (lastOp == "-") result -= num;
-                else if (lastOp == "*") result *= num;
-                else if (lastOp == "/") result /= num;
-                currentNum.clear();
-            }
-            lastOp = c;
-        }
-    }
-    
-    // Process last number
-    if (!currentNum.isEmpty()) {
-        double num = currentNum.toDouble();
-        if (lastOp == "+") result += num;
-        else if (lastOp == "-") result -= num;
-        else if (lastOp == "*") result *= num;
-        else if (lastOp == "/") result /= num;
-    }
-    
-    // Format result
-    QString resultStr = QString::number(result);
-    if (resultStr.endsWith(".0")) {
-        resultStr.chop(2);
-    }
-    
-    m_calcDisplay->setText(resultStr);
-    m_calcCurrent = resultStr;
-    
-    // Copy to clipboard and insert into editor
-    QApplication::clipboard()->setText(resultStr);
-    m_textEdit->insertPlainText(resultStr);
-}
-
-void EditorView::onCalcClear()
-{
-    m_calcCurrent.clear();
-    m_calcDisplay->setText("0");
 }
 
 void EditorView::onSearchToggle()
@@ -697,7 +563,17 @@ bool EditorView::convertMathInput()
     }
     
     int charsToDelete = 0;
-    QString converted = MathConverter::convert(word, charsToDelete);
+    QString converted;
+    
+    // First try inline calculator (expressions with =)
+    if (word.contains('=')) {
+        converted = MathConverter::evaluate(word, charsToDelete);
+    }
+    
+    // If not an expression, try math symbol conversion
+    if (converted.isEmpty()) {
+        converted = MathConverter::convert(word, charsToDelete);
+    }
     
     if (!converted.isEmpty() && charsToDelete > 0) {
         QTextCursor delCursor(m_textEdit->document());

@@ -1,6 +1,7 @@
 #include "MathConverter.h"
 #include <QString>
 #include <QMap>
+#include <cmath>
 
 // Helper to convert a digit string to superscript
 static QString superscriptDigit(const QString &num)
@@ -31,6 +32,17 @@ static QString superscriptDigit(const QString &num)
         }
     }
     return result;
+}
+
+// Helper to apply an operator to two numbers
+static double applyOp(double a, double b, const QString &op)
+{
+    if (op == "+") return a + b;
+    if (op == "-") return a - b;
+    if (op == "*") return a * b;
+    if (op == "/") return (b != 0) ? a / b : 0;
+    if (op == "^") return pow(a, b);
+    return b;
 }
 
 // Map of LaTeX input -> Unicode output (exact matches)
@@ -301,4 +313,67 @@ QString MathConverter::convert(const QString &input, int &charsToDelete)
     }
     
     return QString();
+}
+
+QString MathConverter::evaluate(const QString &input, int &charsToDelete)
+{
+    // Handle expressions ending with = (e.g. "5+3=" → "8")
+    if (!input.endsWith('=')) {
+        charsToDelete = 0;
+        return QString();
+    }
+    
+    QString expr = input.left(input.length() - 1).trimmed();
+    if (expr.isEmpty()) {
+        charsToDelete = 0;
+        return QString();
+    }
+    
+    // Simple expression parser for +, -, *, /, ^
+    double result = 0;
+    QString currentNum;
+    QString lastOp = "+";
+    bool hasOperator = false;
+    
+    for (int i = 0; i < expr.length(); i++) {
+        QChar c = expr[i];
+        
+        if (c.isDigit() || c == '.' || (c == '-' && currentNum.isEmpty() && !hasOperator)) {
+            currentNum += c;
+        } else if (c == '+' || c == '-' || c == '*' || c == '/' || c == '^') {
+            if (!currentNum.isEmpty()) {
+                double num = currentNum.toDouble();
+                result = applyOp(result, num, lastOp);
+                currentNum.clear();
+            }
+            lastOp = c;
+            hasOperator = true;
+        }
+    }
+    
+    // Process last number
+    if (!currentNum.isEmpty()) {
+        double num = currentNum.toDouble();
+        result = applyOp(result, num, lastOp);
+    }
+    
+    // Format result
+    QString resultStr;
+    if (result == static_cast<long long>(result)) {
+        resultStr = QString::number(static_cast<long long>(result));
+    } else {
+        resultStr = QString::number(result, 'g', 10);
+        // Remove trailing zeros
+        if (resultStr.contains('.') && !resultStr.contains('e')) {
+            while (resultStr.endsWith('0')) {
+                resultStr.chop(1);
+            }
+            if (resultStr.endsWith('.')) {
+                resultStr.chop(1);
+            }
+        }
+    }
+    
+    charsToDelete = input.length();
+    return resultStr;
 }
