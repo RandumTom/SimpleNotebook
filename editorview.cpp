@@ -345,6 +345,9 @@ void EditorView::onTextChanged()
 
 void EditorView::autoCalcResult()
 {
+    static bool isCalculating = false;
+    if (isCalculating) return;
+    
     QTextCursor cursor = m_textEdit->textCursor();
     QString fullText = m_textEdit->toPlainText();
     int cursorPos = cursor.position();
@@ -359,28 +362,33 @@ void EditorView::autoCalcResult()
     
     QString word = fullText.mid(wordEnd, cursorPos - wordEnd);
     
-    // Check if word contains = and doesn't end with = (user just typed =)
-    if (word.contains('=') && !word.endsWith('=')) {
-        // Already has result after =
-        int eqPos = word.indexOf('=');
-        if (eqPos < word.length() - 1) {
-            // Has content after =, skip
-            return;
-        }
-        
+    // Check if word ENDS with = (user just typed =)
+    if (word.endsWith('=')) {
         // Extract expression before =
         QString expr = word.left(word.length() - 1).trimmed();
         if (expr.isEmpty()) return;
         
-        // Evaluate
+        // Check if result already exists after =
+        int eqStart = wordEnd + word.length() - 1;
+        int nextCharPos = eqStart + 1;
+        if (nextCharPos < fullText.length()) {
+            QChar nextChar = fullText[nextCharPos];
+            if (nextChar.isDigit()) {
+                // Result already there
+                return;
+            }
+        }
+        
+        // Evaluate the expression
         int charsToDelete = 0;
         QString result = MathConverter::evaluate(expr + "=", charsToDelete);
         
         if (!result.isEmpty()) {
-            // Insert result after the =
-            cursor.setPosition(wordEnd + word.length());
+            isCalculating = true;
+            // Insert result after the = (at current cursor position)
             cursor.insertText(" " + result);
             m_textEdit->setTextCursor(cursor);
+            isCalculating = false;
         }
     }
 }
