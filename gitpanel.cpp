@@ -10,10 +10,11 @@
 #include <QMenuBar>
 
 GitPanel::GitPanel(const QString &repoPath, QWidget *parent)
-    : QDockWidget("Source Control", parent)
+    : QDockWidget(tr("Source Control"), parent)
     , m_repoPath(repoPath)
     , m_gitProcess(new QProcess(this))
 {
+    setWindowTitle(tr("Source Control"));
     setObjectName("GitPanel");
     setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     
@@ -232,10 +233,6 @@ GitPanel::GitPanel(const QString &repoPath, QWidget *parent)
     // Commit actions row
     QHBoxLayout *commitActionsLayout = new QHBoxLayout();
     commitActionsLayout->setSpacing(8);
-    
-    m_aiBtn = new QPushButton("✨ AI", commitSection);
-    m_aiBtn->setStyleSheet("color: #A855F7; font-size: 12px;");
-    commitActionsLayout->addWidget(m_aiBtn);
     
     commitActionsLayout->addStretch();
     

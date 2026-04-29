@@ -66,7 +66,6 @@ private:
     
     QPlainTextEdit *m_commitInput;
     QPushButton *m_expandBtn;
-    QPushButton *m_aiBtn;
     QPushButton *m_commitBtn;
     QMenu *m_commitMenu;
     
