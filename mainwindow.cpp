@@ -29,6 +29,9 @@ MainWindow::MainWindow(QWidget *parent)
     
     // Start maximized
     showMaximized();
+    
+    // Force repaint
+    update();
 }
 
 MainWindow::~MainWindow()

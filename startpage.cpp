@@ -15,6 +15,10 @@ StartPage::StartPage(QWidget *parent)
     // Ensure widget fills all available space
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     
+    // Fix for rendering artifacts
+    setAttribute(Qt::WA_OpaquePaintEvent, true);
+    setAttribute(Qt::WA_NoSystemBackground, true);
+    
     // Dark mode background - solid, covers everything
     setStyleSheet(
         "QWidget {"
