@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "startpage.h"
 #include "editorview.h"
+#include <QStatusBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -15,8 +16,13 @@ MainWindow::MainWindow(QWidget *parent)
     // Start with start page
     setCentralWidget(m_startPage);
     
+    // Hide status bar (editor has its own)
+    statusBar()->hide();
+    
     // Ensure central widget area has solid background
-    centralWidget()->setStyleSheet("background-color: #1E1E1E;");
+    if (centralWidget()) {
+        centralWidget()->setStyleSheet("background-color: #1E1E1E;");
+    }
 
     // Connections
     connect(m_startPage, &StartPage::folderSelected, this, &MainWindow::onFolderSelected);
@@ -38,4 +44,7 @@ void MainWindow::onFolderSelected(const QString &folderPath)
     
     m_editorView->setFolder(folderPath);
     setCentralWidget(m_editorView);
+    
+    // Show status bar for editor
+    statusBar()->show();
 }

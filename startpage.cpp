@@ -171,6 +171,9 @@ StartPage::StartPage(QWidget *parent)
     
     // Ensure we fill all space
     setMinimumSize(800, 600);
+    
+    // Fill entire available space
+    mainLayout->addStretch();
 }
 
 StartPage::~StartPage()
