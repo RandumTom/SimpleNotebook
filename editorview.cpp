@@ -188,31 +188,28 @@ EditorView::EditorView(QWidget *parent)
     editorArea->setLayout(editorLayout);
     mainLayout->addWidget(editorArea, 1);
 
-    // Terminal Dock (hidden by default)
+    // Terminal Dock (hidden by default) - using QTermWidget for real embedded terminal
     m_terminalDock = new QDockWidget("Terminal", this);
     m_terminalDock->setAllowedAreas(Qt::BottomDockWidgetArea);
-    m_terminalDock->setMaximumHeight(200);
-    m_terminalDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable);
-    m_terminalDock->setStyleSheet("QDockWidget { background-color: #0D0D0D; color: #00FF00; }");
+    m_terminalDock->setMaximumHeight(300);
+    m_terminalDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+    m_terminalDock->setStyleSheet("QDockWidget { background-color: #1E1E1E; }");
 
-    QWidget *terminalWidget = new QWidget(m_terminalDock);
-    QVBoxLayout *terminalLayout = new QVBoxLayout(terminalWidget);
-    terminalLayout->setContentsMargins(5, 5, 5, 5);
-
-    m_terminalOutput = new QTextEdit(terminalWidget);
-    m_terminalOutput->setFont(QFont("Consolas", 11));
-    m_terminalOutput->setStyleSheet("background-color: #0D0D0D; color: #00FF00; border: none;");
-    m_terminalOutput->setReadOnly(true);
-    terminalLayout->addWidget(m_terminalOutput, 1);
-
-    QHBoxLayout *terminalInputLayout = new QHBoxLayout();
-    terminalInputLayout->addWidget(new QLabel("$ ", terminalWidget));
-    m_terminalInput = new QLineEdit(terminalWidget);
-    m_terminalInput->setStyleSheet("background-color: #1A1A1A; color: #00FF00; border: 1px solid #333; padding: 4px;");
-    terminalInputLayout->addWidget(m_terminalInput, 1);
-    terminalLayout->addLayout(terminalInputLayout);
-
-    m_terminalDock->setWidget(terminalWidget);
+    // Create real terminal widget
+    m_terminal = new QTermWidget(m_terminalDock);
+    
+    // Set terminal color scheme to dark
+    m_terminal->setColorScheme("Dark");
+    
+    // Set initial working directory
+    if (!m_folderPath.isEmpty()) {
+        m_terminal->setWorkingDirectory(m_folderPath);
+    }
+    
+    // Start shell with default shell
+    m_terminal->startShellProgram();
+    
+    m_terminalDock->setWidget(m_terminal);
     m_terminalDock->hide();
 
     // Calculator Dock (hidden by default)
@@ -300,7 +297,6 @@ EditorView::EditorView(QWidget *parent)
     connect(m_searchNextBtn, &QPushButton::clicked, this, &EditorView::onSearchNext);
     connect(m_searchPrevBtn, &QPushButton::clicked, this, &EditorView::onSearchPrevious);
     connect(m_searchCloseBtn, &QPushButton::clicked, this, &EditorView::onSearchToggle);
-    connect(m_terminalInput, &QLineEdit::returnPressed, this, &EditorView::onTerminalCommand);
     connect(m_autoSaveTimer, &QTimer::timeout, this, &EditorView::autoSave);
     m_autoSaveTimer->start(m_autoSaveInterval);
 
@@ -490,32 +486,6 @@ void EditorView::onCalcClear()
 {
     m_calcCurrent.clear();
     m_calcDisplay->setText("0");
-}
-
-void EditorView::onTerminalCommand()
-{
-    QString command = m_terminalInput->text().trimmed();
-    if (command.isEmpty()) return;
-    
-    m_terminalOutput->append("$ " + command);
-    m_terminalInput->clear();
-    
-    // Execute command
-    QProcess *process = new QProcess(this);
-    connect(process, &QProcess::readyReadStandardOutput, this, [this, process]() {
-        m_terminalOutput->append(QString::fromLocal8Bit(process->readAllStandardOutput()));
-    });
-    connect(process, &QProcess::readyReadStandardError, this, [this, process]() {
-        m_terminalOutput->append("<span style='color: #FF6B6B;'>" + QString::fromLocal8Bit(process->readAllStandardError()) + "</span>");
-    });
-    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus) {
-        m_terminalOutput->append("");
-    });
-    
-    if (!m_folderPath.isEmpty()) {
-        process->setWorkingDirectory(m_folderPath);
-    }
-    process->start("/bin/sh", QStringList() << "-c" << command);
 }
 
 void EditorView::onSearchToggle()

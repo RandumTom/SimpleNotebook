@@ -8,6 +8,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(QTermWidget6 REQUIRED)
 
 add_executable(${PROJECT_NAME}
     main.cpp
@@ -21,4 +22,5 @@ add_executable(${PROJECT_NAME}
     MathConverter.h
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
+target_include_directories(${PROJECT_NAME} PRIVATE /usr/include/qtermwidget6)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets qtermwidget6)

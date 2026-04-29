@@ -17,6 +17,9 @@ class QLineEdit;
 class QDockWidget;
 class QTextEdit;
 
+// QTermWidget terminal
+#include <qtermwidget6/qtermwidget.h>
+
 class EditorView : public QWidget
 {
     Q_OBJECT
@@ -55,7 +58,6 @@ private slots:
     // Calculator
     void onCalcEquals();
     void onCalcClear();
-    void onTerminalCommand();
 
 private:
     void refreshFileList();
@@ -93,8 +95,7 @@ private:
     
     // Terminal
     QDockWidget *m_terminalDock;
-    QTextEdit *m_terminalOutput;
-    QLineEdit *m_terminalInput;
+    QTermWidget *m_terminal;
     
     // Calculator
     QDockWidget *m_calcDock;
