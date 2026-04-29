@@ -2,6 +2,7 @@
 #include "startpage.h"
 #include "editorview.h"
 #include <QStatusBar>
+#include <QMenuBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -19,19 +20,14 @@ MainWindow::MainWindow(QWidget *parent)
     // Hide status bar (editor has its own)
     statusBar()->hide();
     
-    // Ensure central widget area has solid background
-    if (centralWidget()) {
-        centralWidget()->setStyleSheet("background-color: #1E1E1E;");
-    }
+    // Menu bar too if any
+    menuBar()->hide();
 
     // Connections
     connect(m_startPage, &StartPage::folderSelected, this, &MainWindow::onFolderSelected);
     
     // Start maximized
     showMaximized();
-    
-    // Force repaint
-    update();
 }
 
 MainWindow::~MainWindow()

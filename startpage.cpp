@@ -12,28 +12,17 @@
 StartPage::StartPage(QWidget *parent)
     : QWidget(parent)
 {
-    // Ensure widget fills all available space
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    
-    // Fix for rendering artifacts
-    setAttribute(Qt::WA_OpaquePaintEvent, true);
-    setAttribute(Qt::WA_NoSystemBackground, true);
-    
-    // Dark mode background - solid, covers everything
-    setStyleSheet(
-        "QWidget {"
-        "   background-color: #1E1E1E;"
-        "}"
-        "QLabel {"
-        "   color: #D4D4D4;"
-        "}"
-    );
+    // Dark mode background - solid color
+    setAutoFillBackground(true);
+    QPalette pal = palette();
+    pal.setColor(QPalette::Window, QColor(30, 30, 30));
+    setPalette(pal);
 
+    // Main layout with margins
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setAlignment(Qt::AlignCenter);
     mainLayout->setContentsMargins(40, 40, 40, 40);
 
-    // Welcome label with gradient effect via shadow
+    // Welcome label
     QLabel *welcomeLabel = new QLabel("📚 SimpleNotebook", this);
     welcomeLabel->setStyleSheet(
         "font-size: 36px; "
@@ -85,18 +74,18 @@ StartPage::StartPage(QWidget *parent)
     };
 
     QList<Subject> subjects = {
-        {"German", "🇩🇪", "#7C3AED"},         // Purple
-        {"Mathematics", "📐", "#3B82F6"},     // Blue
-        {"English", "🇬🇧", "#10B981"},        // Green
-        {"Biology", "🧬", "#22C55E"},         // Lime
-        {"Chemistry", "⚗️", "#A855F7"},       // Violet
-        {"Physics", "⚡", "#6366F1"},          // Indigo
-        {"History", "📜", "#F59E0B"},         // Amber
-        {"Geography", "🌍", "#14B8A6"},       // Teal
-        {"Music", "🎵", "#EC4899"},            // Pink
-        {"Art", "🎨", "#F97316"},              // Orange
-        {"Physical Education", "⚽", "#84CC16"}, // Lime
-        {"Computer Science", "💻", "#64748B"}, // Slate
+        {"German", "🇩🇪", "#7C3AED"},
+        {"Mathematics", "📐", "#3B82F6"},
+        {"English", "🇬🇧", "#10B981"},
+        {"Biology", "🧬", "#22C55E"},
+        {"Chemistry", "⚗️", "#A855F7"},
+        {"Physics", "⚡", "#6366F1"},
+        {"History", "📜", "#F59E0B"},
+        {"Geography", "🌍", "#14B8A6"},
+        {"Music", "🎵", "#EC4899"},
+        {"Art", "🎨", "#F97316"},
+        {"Physical Education", "⚽", "#84CC16"},
+        {"Computer Science", "💻", "#64748B"},
     };
 
     int row = 0, col = 0;
@@ -133,10 +122,6 @@ StartPage::StartPage(QWidget *parent)
         }
     }
 
-    mainLayout->addWidget(welcomeLabel);
-    mainLayout->addWidget(subtitleLabel);
-    mainLayout->addWidget(subjectsGroup);
-
     // Custom folder button
     QPushButton *customBtn = new QPushButton("  📁  Choose Custom Folder", this);
     customBtn->setMinimumWidth(220);
@@ -168,16 +153,17 @@ StartPage::StartPage(QWidget *parent)
     m_folderLabel->setAlignment(Qt::AlignCenter);
     m_folderLabel->setWordWrap(true);
 
+    // Add everything to layout
+    mainLayout->addStretch();  // Push content to center
+    mainLayout->addWidget(welcomeLabel);
+    mainLayout->addWidget(subtitleLabel);
+    mainLayout->addWidget(subjectsGroup);
     mainLayout->addWidget(customBtn);
     mainLayout->addWidget(m_folderLabel);
+    mainLayout->addStretch();  // Fill remaining space
+    mainLayout->setAlignment(Qt::AlignCenter);
 
     connect(customBtn, &QPushButton::clicked, this, &StartPage::onSelectFolder);
-    
-    // Ensure we fill all space
-    setMinimumSize(800, 600);
-    
-    // Fill entire available space
-    mainLayout->addStretch();
 }
 
 StartPage::~StartPage()
