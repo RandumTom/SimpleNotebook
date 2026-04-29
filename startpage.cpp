@@ -12,6 +12,9 @@
 StartPage::StartPage(QWidget *parent)
     : QWidget(parent)
 {
+    // Fix for graphical glitches
+    setAttribute(Qt::WA_OpaquePaintEvent, false);
+    
     // Dark mode background
     setStyleSheet(
         "QWidget {"
