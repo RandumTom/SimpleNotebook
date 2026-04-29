@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets PrintSupport)
 find_package(QTermWidget6 REQUIRED)
 
 add_executable(${PROJECT_NAME}
@@ -25,4 +25,4 @@ add_executable(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE /usr/include/qtermwidget6)
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets qtermwidget6)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::PrintSupport qtermwidget6)

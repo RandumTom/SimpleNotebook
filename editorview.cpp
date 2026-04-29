@@ -28,6 +28,10 @@
 #include <QGridLayout>
 #include <QDebug>
 #include <QApplication>
+#include <QFileDialog>
+#include <QPrinter>
+#include <QPrintDialog>
+#include <QPageSize>
 #include <QClipboard>
 #include <QMenu>
 #include <QWidgetAction>
@@ -171,6 +175,47 @@ EditorView::EditorView(QWidget *parent)
     searchAct->setShortcut(QKeySequence::Find);
     searchAct->setCheckable(true);
 
+    // Export button with dropdown
+    QPushButton *exportBtn = new QPushButton("📥 Export", m_toolbar);
+    exportBtn->setStyleSheet("QPushButton { background-color: transparent; color: #D4D4D4; border: none; padding: 8px 12px; border-radius: 4px; } QPushButton:hover { background-color: #3E3E42; }");
+    QMenu *exportMenu = new QMenu(m_toolbar);
+    exportMenu->addAction("Download as .md", this, [this]() {
+        if (m_currentFile.isEmpty()) {
+            QMessageBox::warning(this, "No File", "Create or open a note first.");
+            return;
+        }
+        QString fileName = QFileInfo(m_currentFile).fileName();
+        QString savePath = QFileDialog::getSaveFileName(this, "Save as .md", 
+            QDir::homePath() + "/" + fileName, "Markdown (*.md)");
+        if (!savePath.isEmpty()) {
+            QFile::copy(m_currentFile, savePath);
+            m_statusBar->showMessage("Exported to: " + savePath, 3000);
+        }
+    });
+    exportMenu->addAction("Export as PDF", this, [this]() {
+        if (m_currentFile.isEmpty()) {
+            QMessageBox::warning(this, "No File", "Create or open a note first.");
+            return;
+        }
+        QString fileName = QFileInfo(m_currentFile).baseName();
+        QString savePath = QFileDialog::getSaveFileName(this, "Save as PDF",
+            QDir::homePath() + "/" + fileName + ".pdf", "PDF (*.pdf)");
+        if (!savePath.isEmpty()) {
+            // Create PDF using QTextDocument
+            QTextDocument doc;
+            doc.setMarkdown(m_textEdit->toPlainText());
+            
+            QPrinter printer(QPrinter::HighResolution);
+            printer.setOutputFileName(savePath);
+            printer.setOutputFormat(QPrinter::PdfFormat);
+            printer.setPageSize(QPageSize::A4);
+            
+            doc.print(&printer);
+            m_statusBar->showMessage("Exported PDF to: " + savePath, 3000);
+        }
+    });
+    exportBtn->setMenu(exportMenu);
+
     QAction *terminalAct = new QAction("Terminal (Ctrl+Ö)", this);
     terminalAct->setCheckable(true);
     terminalAct->setShortcut(Qt::CTRL | Qt::Key_O);
@@ -209,6 +254,12 @@ EditorView::EditorView(QWidget *parent)
     m_toolbar->addAction(convertAct);
     m_toolbar->addAction(searchAct);
     m_toolbar->addSeparator();
+    
+    // Add export button to toolbar
+    QWidgetAction *exportAction = new QWidgetAction(m_toolbar);
+    exportAction->setDefaultWidget(exportBtn);
+    m_toolbar->addAction(exportAction);
+    
     m_toolbar->addAction(terminalAct);
     m_toolbar->addAction(agentsBtn);
     m_toolbar->addAction(gitAct);
